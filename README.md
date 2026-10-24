@@ -4,7 +4,7 @@ Appli Android personnelle de Fred et Céline : ce que propose chaque candidat à
 domaine par domaine, d'après les données ouvertes de [2027 et moi](https://2027etmoi.fr) (Licence Ouverte 2.0).
 L'appli n'invente rien : chaque mesure affiche le texte exact de la source, sa nature et un lien vers la page d'origine.
 
-Version actuelle : **0.1.0** (étape 1). Cadrage validé : [CADRAGE-VALIDATION.md](CADRAGE-VALIDATION.md).
+Version actuelle : **0.1.1** (étape 1). Cadrage validé : [CADRAGE-VALIDATION.md](CADRAGE-VALIDATION.md).
 Installation des téléphones et entretien : [GUIDE-INSTALLATION.md](GUIDE-INSTALLATION.md).
 
 ## Mode d'emploi

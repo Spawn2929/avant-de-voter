@@ -120,8 +120,12 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
                 enregistrer(app, changes)
                 prefs.setMisAJour(attendu, System.currentTimeMillis())
                 Resultat.MisAJour
+            } catch (_: java.net.UnknownHostException) {
+                Resultat.Echec("pas de connexion internet")
+            } catch (_: java.net.SocketTimeoutException) {
+                Resultat.Echec("connexion trop lente")
             } catch (e: IOException) {
-                Resultat.Echec(e.message ?: "pas de réseau")
+                Resultat.Echec(e.message?.takeIf { it.startsWith("le serveur") || it.startsWith("fichier") } ?: "pas de connexion internet")
             } catch (e: Exception) {
                 Resultat.Echec("données illisibles (${e.javaClass.simpleName})")
             }

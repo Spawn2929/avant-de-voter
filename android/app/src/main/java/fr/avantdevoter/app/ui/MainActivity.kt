@@ -1,7 +1,9 @@
 package fr.avantdevoter.app.ui
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -57,6 +59,12 @@ class MainActivity : ComponentActivity() {
                 ThemeChoisi.CLAIR -> false
                 ThemeChoisi.SOMBRE -> true
                 else -> isSystemInDarkTheme()
+            }
+            // Icônes de la barre d'état (heure, batterie) claires sur fond sombre, foncées sur fond clair.
+            LaunchedEffect(sombre) {
+                val style = if (sombre) SystemBarStyle.dark(Color.TRANSPARENT)
+                else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
             AvantDeVoterTheme(sombre) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
