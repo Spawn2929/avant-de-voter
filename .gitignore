@@ -1,0 +1,24 @@
+# Fichiers générés
+build/
+.gradle/
+local.properties
+*.iml
+.idea/
+.kotlin/
+__pycache__/
+.pytest_cache/
+pipeline/out/
+pipeline/site/
+pipeline/source/
+
+# Copie des données intégrée à l'APK (téléchargée au moment de la fabrication)
+android/app/src/main/assets/snapshot/
+
+# Secrets : ne jamais publier
+*.jks
+*.keystore
+keystore.properties
+secrets/
+
+# APK téléchargés pour installation
+apk/

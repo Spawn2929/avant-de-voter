@@ -1,0 +1,94 @@
+# Robot quotidien : lit les données de 2027 et moi, prépare les fichiers de l'appli et les publie
+# sur GitHub Pages (branche gh-pages). Tourne chaque matin à 6 h (heure de Paris), ou à la main
+# depuis l'onglet Actions de GitHub (bouton « Run workflow »).
+# Si une donnée est invalide, rien n'est publié : la version de la veille reste en ligne.
+name: Données quotidiennes
+
+on:
+  schedule:
+    # Les horaires GitHub sont en heure universelle : 4 h en été et 5 h en hiver font 6 h à Paris.
+    # Les deux se déclenchent chaque jour ; l'étape « Heure de Paris » ne garde que la bonne.
+    - cron: "0 4 * * *"
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["pipeline/**", ".github/workflows/donnees-quotidiennes.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: donnees
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Heure de Paris
+        id: heure
+        run: |
+          OFFSET=$(TZ=Europe/Paris date +%z)   # +0200 en été, +0100 en hiver
+          GO=true
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if [ "${{ github.event.schedule }}" = "0 4 * * *" ] && [ "$OFFSET" != "+0200" ]; then GO=false; fi
+            if [ "${{ github.event.schedule }}" = "0 5 * * *" ] && [ "$OFFSET" != "+0100" ]; then GO=false; fi
+          fi
+          echo "go=$GO" >> "$GITHUB_OUTPUT"
+          echo "Décalage Paris : $OFFSET — exécution : $GO"
+
+      - uses: actions/checkout@v5
+        if: steps.heure.outputs.go == 'true'
+
+      - name: Dernière version publiée (gh-pages)
+        if: steps.heure.outputs.go == 'true'
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages > /dev/null; then
+            git clone --quiet --depth 1 --branch gh-pages "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" pipeline/site
+          else
+            mkdir -p pipeline/site && cd pipeline/site && git init --quiet -b gh-pages \
+              && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          fi
+
+      - name: Données de 2027 et moi (dossier data/ seulement)
+        if: steps.heure.outputs.go == 'true'
+        run: |
+          git clone --quiet --depth 1 --filter=blob:none --sparse --branch main https://github.com/2027etmoi/2027etmoi.git pipeline/source
+          git -C pipeline/source sparse-checkout set data
+
+      - uses: actions/setup-python@v6
+        if: steps.heure.outputs.go == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Tests du robot
+        if: steps.heure.outputs.go == 'true'
+        run: |
+          pip install --quiet -r pipeline/requirements.txt
+          SOURCE_2027=pipeline/source/data python -m pytest pipeline/tests -q
+
+      - name: Préparation et contrôle des fichiers
+        if: steps.heure.outputs.go == 'true'
+        run: python pipeline/build.py --source pipeline/source/data --previous pipeline/site --out pipeline/out
+
+      - name: Publication
+        if: steps.heure.outputs.go == 'true'
+        run: |
+          cd pipeline/site
+          git config user.name "Avant de voter (robot)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Remplace le contenu par la nouvelle version (le journal du robot est conservé).
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name robot.txt -exec rm -rf {} +
+          cp -r ../out/. .
+          # Une ligne par mois au moins : sans activité pendant 60 jours, GitHub suspend la tâche quotidienne.
+          MOIS=$(TZ=Europe/Paris date +%Y-%m)
+          grep -q "^$MOIS" robot.txt 2>/dev/null || echo "$MOIS : robot actif" >> robot.txt
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Rien de neuf : rien à publier."
+          else
+            git commit --quiet -m "Données du $(TZ=Europe/Paris date +%d/%m/%Y)"
+            git push --quiet origin HEAD:gh-pages
+            echo "Publié."
+          fi
