@@ -1,16 +1,16 @@
 {
   "format": 1,
   "source_mise_a_jour": "2026-10-22",
-  "publie_le": "2026-10-24T09:15:52+02:00",
+  "publie_le": "2026-10-24T09:48:16+02:00",
   "fichiers": {
     "app-data.json": {
-      "sha256": "e88a07c7b835044700151ba7847a91997ed94cc21d9560602f400857b53fb17f",
-      "taille": 750261
+      "sha256": "93c3b04482a18e4b58d442f099be1fecd56ecf30ae71fe8a86596de8f78979a9",
+      "taille": 752169
     },
     "changes.json": {
       "sha256": "288b79bdd4df338cc12dc0a1b9ab5204398cd92927208819dd77d500188d985c",
       "taille": 30
     }
   },
-  "photos": 47
+  "photos": 49
 }
