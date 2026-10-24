@@ -87,6 +87,8 @@ def lire_source(source: Path) -> dict:
         "programmes": {},
         "biographies": {},
     }
+    # Votes au Parlement : facultatifs (affichés sur la fiche candidat s'ils existent).
+    data["votes"] = lire_json(source / "votes.json") if (source / "votes.json").exists() else {}
     for sous, cle in (("programmes", "programmes"), ("biographies", "biographies")):
         dossier = source / sous
         if dossier.is_dir():
@@ -266,6 +268,39 @@ def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date) -> dict
     noms_hors_liste = dict((precedent or {}).get("noms_hors_liste") or {})
     noms_hors_liste.update(data["sondages"].get("noms_hors_liste") or {})
 
+    votes = data.get("votes") or {}
+    scrutins = sorted(
+        (
+            {
+                "id": v["id"],
+                "chambre": v.get("chambre") or "",
+                "date": v["date"],
+                "titre": v.get("titre") or "",
+                "type": v.get("type") or "",
+                "resultat": v.get("resultat") or "",
+                "url": v.get("url") or "",
+                "votes": {k: p for k, p in (v.get("votes") or {}).items() if p},
+            }
+            for v in votes.get("scrutins") or []
+            if v.get("votes")
+        ),
+        key=lambda v: (v["date"], v["id"]),
+        reverse=True,
+    )
+    mandats = {
+        cid: [
+            {
+                "chambre": m.get("chambre") or "",
+                "detail": m.get("detail") or "",
+                "debut": m.get("debut") or "",
+                "fin": m.get("fin") or "",
+                "source": source_courte(m.get("source")),
+            }
+            for m in liste
+        ]
+        for cid, liste in sorted((votes.get("mandats") or {}).items())
+    }
+
     meta = data["meta"]
     return {
         "format": FORMAT,
@@ -291,6 +326,8 @@ def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date) -> dict
             }
             for e in sorted(data["calendrier"].get("etapes") or [], key=lambda e: e["date"])
         ],
+        "scrutins": scrutins,
+        "mandats": mandats,
     }
 
 
@@ -473,6 +510,9 @@ def valider(app: dict, changes: dict):
         exige(bool(s["hypotheses"]), f"{ou} : aucune hypothèse")
         for h in s["hypotheses"]:
             exige(all(0 <= v <= 100 for v in h["scores"].values()), f"{ou} : score hors de 0-100")
+    for v in app.get("scrutins", []):
+        # Une position inconnue (nouvelle dans la source) s'affichera telle quelle : on vérifie seulement le format.
+        exige(all(isinstance(p, str) for p in v["votes"].values()), f"scrutin {v['id']} : position de vote illisible")
     for ch in changes["changements"]:
         exige(ch["type"] in {"mesure_ajoutee", "mesure_retiree", "programme_etat", "statut_candidat", "nouveau_candidat", "nouveau_sondage"},
               f"type de changement inconnu {ch['type']!r}")

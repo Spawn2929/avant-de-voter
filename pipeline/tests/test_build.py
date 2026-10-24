@@ -70,6 +70,14 @@ def source_min(tmp: Path, **modifs) -> Path:
         {"date": "2027-04-11", "titre": "1er tour", "statut": "estimee", "source": {"titre": "S", "url": "https://s", "date": "2026-01-01"}},
         {"date": "2026-12-10", "fin": "2026-12-13", "titre": "Référendum", "statut": "prevue"},
     ]})
+    if modifs.get("votes", True):
+        ecrire(src / "votes.json", {"mise_a_jour": "2026-09-29", "mandats": {"le-pen": [
+            {"chambre": "AN", "detail": "Députée", "debut": "2017-06-21", "fin": "", "source": {"titre": "AN", "url": "https://an.fr", "date": "2026-09-25"}}]},
+            "scrutins": [
+                {"id": "an-1", "chambre": "AN", "date": "2025-01-10", "titre": "Loi A", "type": "ensemble", "resultat": "adopté", "url": "https://an.fr/1", "votes": {"le-pen": "pour"}},
+                {"id": "an-2", "chambre": "AN", "date": "2026-03-01", "titre": "Loi B", "type": "ensemble", "resultat": "rejeté", "url": "https://an.fr/2", "votes": {"le-pen": "absent", "zemmour": "contre"}},
+                {"id": "an-3", "chambre": "AN", "date": "2026-03-02", "titre": "Sans vote", "votes": {}},
+            ]})
     return src
 
 
@@ -131,6 +139,18 @@ def test_les_13_domaines_dans_l_ordre(tmp_path):
 def test_date_de_la_source(tmp_path):
     _, _, app = lancer(tmp_path, source_min(tmp_path))
     assert app["source"]["mise_a_jour"] == "2026-10-22"
+
+
+def test_votes_au_parlement(tmp_path):
+    _, _, app = lancer(tmp_path, source_min(tmp_path))
+    assert [v["id"] for v in app["scrutins"]] == ["an-2", "an-1"]  # du plus récent au plus ancien, scrutins sans vote retirés
+    assert app["scrutins"][0]["votes"] == {"le-pen": "absent", "zemmour": "contre"}
+    assert app["mandats"]["le-pen"][0]["detail"] == "Députée"
+
+
+def test_sans_fichier_de_votes(tmp_path):
+    _, _, app = lancer(tmp_path, source_min(tmp_path, votes=False))
+    assert app["scrutins"] == [] and app["mandats"] == {}
 
 
 # ---------------------------------------------------------------- moyenne
