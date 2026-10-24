@@ -90,6 +90,8 @@ def lire_source(source: Path) -> dict:
     # Votes au Parlement : facultatifs (affichés sur la fiche candidat s'ils existent).
     data["votes"] = lire_json(source / "votes.json") if (source / "votes.json").exists() else {}
     data["complements"] = photos_complementaires()
+    # Questions clés et positions sourcées des candidats : écran « De quel bord es-tu ? ».
+    data["questions"] = lire_json(source / "questions.json") if (source / "questions.json").exists() else {}
     for sous, cle in (("programmes", "programmes"), ("biographies", "biographies")):
         dossier = source / sous
         if dossier.is_dir():
@@ -317,6 +319,18 @@ def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date) -> dict
         for cid, liste in sorted((votes.get("mandats") or {}).items())
     }
 
+    q = data.get("questions") or {}
+    questions = [{"id": x["id"], "theme": x.get("theme") or "", "texte": x["texte"]} for x in q.get("questions") or [] if x.get("texte")]
+    ids_q = {x["id"] for x in questions}
+    positions = {
+        cid: {
+            qid: {"position": p.get("position") or "non_connu", "resume": p.get("resume") or "", "source": source_courte(p.get("source"))}
+            for qid, p in sorted(qs.items())
+            if qid in ids_q
+        }
+        for cid, qs in sorted((q.get("positions") or {}).items())
+    }
+
     meta = data["meta"]
     return {
         "format": FORMAT,
@@ -344,6 +358,8 @@ def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date) -> dict
         ],
         "scrutins": scrutins,
         "mandats": mandats,
+        "questions": questions,
+        "positions": positions,
     }
 
 

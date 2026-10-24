@@ -78,6 +78,10 @@ def source_min(tmp: Path, **modifs) -> Path:
                 {"id": "an-2", "chambre": "AN", "date": "2026-03-01", "titre": "Loi B", "type": "ensemble", "resultat": "rejeté", "url": "https://an.fr/2", "votes": {"le-pen": "absent", "zemmour": "contre"}},
                 {"id": "an-3", "chambre": "AN", "date": "2026-03-02", "titre": "Sans vote", "votes": {}},
             ]})
+    ecrire(src / "questions.json", {"echelle": ["pour", "plutot_pour", "nuance", "plutot_contre", "contre", "non_connu"],
+        "questions": [{"id": "q01", "theme": "economie", "texte": "Faut-il rétablir un impôt sur la fortune (ISF) ?"}],
+        "positions": {"zemmour": {"q01": {"position": "contre", "resume": "R", "source": {"titre": "T", "url": "https://t", "date": "2026-01-01"}},
+                                  "q99": {"position": "pour"}}}})
     return src
 
 
@@ -146,6 +150,12 @@ def test_votes_au_parlement(tmp_path):
     assert [v["id"] for v in app["scrutins"]] == ["an-2", "an-1"]  # du plus récent au plus ancien, scrutins sans vote retirés
     assert app["scrutins"][0]["votes"] == {"le-pen": "absent", "zemmour": "contre"}
     assert app["mandats"]["le-pen"][0]["detail"] == "Députée"
+
+
+def test_questions_et_positions(tmp_path):
+    _, _, app = lancer(tmp_path, source_min(tmp_path))
+    assert app["questions"] == [{"id": "q01", "theme": "economie", "texte": "Faut-il rétablir un impôt sur la fortune (ISF) ?"}]
+    assert app["positions"]["zemmour"] == {"q01": {"position": "contre", "resume": "R", "source": {"titre": "T", "url": "https://t", "date": "2026-01-01"}}}
 
 
 def test_sans_fichier_de_votes(tmp_path):
