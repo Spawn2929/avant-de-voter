@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icône : une urne dans laquelle on glisse un bulletin. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Réduit pour tenir dans la zone visible des icônes rondes. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.72"
+        android:scaleY="0.72">
+        <!-- Bulletin, à moitié glissé dans la fente -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M42,22 L66,22 L66,50 L42,50 Z" />
+        <path
+            android:fillColor="#3F5A73"
+            android:pathData="M46,28 L62,28 L62,30.5 L46,30.5 Z M46,34 L58,34 L58,36.5 L46,36.5 Z" />
+        <!-- Couvercle de l'urne, avec la fente -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M24,46 L84,46 L84,54 L24,54 Z" />
+        <path
+            android:fillColor="#3F5A73"
+            android:pathData="M40,48.5 L68,48.5 L68,51.5 L40,51.5 Z" />
+        <!-- Corps de l'urne -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M28,56 L80,56 L80,86 L28,86 Z" />
+        <path
+            android:fillColor="#3F5A73"
+            android:pathData="M34,62 L74,62 L74,80 L34,80 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M36,64 L72,64 L72,78 L36,78 Z" />
+    </group>
+</vector>
