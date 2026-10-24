@@ -59,6 +59,9 @@ import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.remember
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 
 /** Fiche complète d'un candidat. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,6 +115,33 @@ fun FicheCandidatScreen(
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(top = 6.dp),
                         )
+                    }
+                    if (candidat.photo == null) {
+                        // Pas de photo publiée : on peut en choisir une dans la galerie, gardée sur ce téléphone.
+                        val choisir = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+                            if (uri != null) vm.ajouterPhotoPerso(candidat.id, uri)
+                        }
+                        val image = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        if (photo != null) {
+                            Text(
+                                "Photo ajoutée sur ce téléphone (non publiée)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                            Row {
+                                TextButton(onClick = { choisir.launch(image) }) { Text("Changer") }
+                                TextButton(onClick = { vm.retirerPhotoPerso(candidat.id) }) { Text("Retirer") }
+                            }
+                        } else {
+                            Text(
+                                "Pas de photo libre publiée par 2027 et moi.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                            TextButton(onClick = { choisir.launch(image) }) { Text("Ajouter une photo (sur ce téléphone)") }
+                        }
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(candidat.nom, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
@@ -360,6 +390,14 @@ fun PhotoPleinEcran(vm: MainViewModel, candidat: Candidat, onFermer: () -> Unit)
         }
         IconButton(onClick = onFermer, modifier = Modifier.statusBarsPadding().padding(8.dp).align(Alignment.TopStart)) {
             Icon(Icons.Outlined.Close, "Fermer", tint = Color.White)
+        }
+        if (candidat.photo == null) {
+            Text(
+                "${candidat.nom} — photo ajoutée sur ce téléphone (non publiée)",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.align(Alignment.BottomCenter).background(Color.Black.copy(alpha = 0.6f)).navigationBarsPadding().padding(16.dp),
+            )
         }
         candidat.photo?.let { p ->
             Column(

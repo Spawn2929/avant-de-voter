@@ -114,6 +114,7 @@ private sealed interface Ecran {
     data object Calendrier : Ecran
     data object Priorites : Ecran
     data object Quiz : Ecran
+    data object Boussole : Ecran
     data object Recherche : Ecran
     data object Reglages : Ecran
     data object Credits : Ecran
@@ -128,6 +129,7 @@ private fun encoder(e: Ecran) = when (e) {
     Ecran.Calendrier -> "calendrier"
     Ecran.Priorites -> "priorites"
     Ecran.Quiz -> "quiz"
+    Ecran.Boussole -> "boussole"
     Ecran.Recherche -> "recherche"
     Ecran.Reglages -> "reglages"
     Ecran.Credits -> "credits"
@@ -144,6 +146,7 @@ private fun decoder(s: String): Ecran? {
         "calendrier" -> Ecran.Calendrier
         "priorites" -> Ecran.Priorites
         "quiz" -> Ecran.Quiz
+        "boussole" -> Ecran.Boussole
         "recherche" -> Ecran.Recherche
         "reglages" -> Ecran.Reglages
         "credits" -> Ecran.Credits
@@ -239,6 +242,7 @@ private fun EcranDessus(
         Ecran.Calendrier -> CalendrierScreen(cat, fermer)
         Ecran.Priorites -> PrioritesScreen(vm, cat, fermer)
         Ecran.Quiz -> QuizScreen(vm, cat, fermer)
+        Ecran.Boussole -> BoussoleScreen(vm, cat, fermer) { ouvrir(Ecran.Fiche(it)) }
         Ecran.Recherche -> RechercheScreen(vm, cat, r, fermer) { ouvrir(Ecran.Fiche(it)) }
         Ecran.Reglages -> ReglagesScreen(vm, cat, r, fermer)
         Ecran.Credits -> CreditsScreen(vm, cat, fermer)
@@ -279,6 +283,7 @@ private fun Onglets(vm: MainViewModel, pager: PagerState, cat: Catalogue, r: Reg
                 onCalendrier = { ouvrir(Ecran.Calendrier) },
                 onPriorites = { ouvrir(Ecran.Priorites) },
                 onQuiz = { ouvrir(Ecran.Quiz) },
+                onBoussole = { ouvrir(Ecran.Boussole) },
                 onReglages = { ouvrir(Ecran.Reglages) },
                 onCredits = { ouvrir(Ecran.Credits) },
             )

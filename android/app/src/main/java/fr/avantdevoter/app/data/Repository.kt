@@ -1,6 +1,10 @@
 package fr.avantdevoter.app.data
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.net.Uri
+import androidx.compose.runtime.mutableIntStateOf
 import fr.avantdevoter.app.BuildConfig
 import fr.avantdevoter.app.sync.Notifications
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +52,43 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
 
     val dossierPhotos: File = File(context.filesDir, "photos")
 
-    fun photo(c: Candidat): File? = c.photo?.let { File(context.filesDir, it.fichier) }?.takeIf { it.exists() }
+    /**
+     * Photos choisies dans la galerie pour un candidat sans photo publiée. Elles restent sur ce téléphone :
+     * jamais envoyées ni publiées (copie privée). Compteur lu par l'affichage pour se redessiner après un ajout.
+     */
+    private val dossierPerso: File = File(context.filesDir, "photos_perso")
+    private val versionPerso = mutableIntStateOf(0)
+
+    fun photoPerso(id: String): File? {
+        versionPerso.intValue // abonne l'affichage aux ajouts et retraits
+        return dossierPerso.listFiles()?.filter { it.name.startsWith("$id-") }?.maxByOrNull { it.name }
+    }
+
+    /** Photo affichée : celle de la source (ou du complément Commons), sinon celle ajoutée sur ce téléphone. */
+    fun photo(c: Candidat): File? =
+        c.photo?.let { File(context.filesDir, it.fichier) }?.takeIf { it.exists() } ?: photoPerso(c.id)
+
+    /** Copie la photo choisie, réduite à 300 px de large, sous un nouveau nom (l'ancienne est effacée). */
+    suspend fun ajouterPhotoPerso(id: String, uri: Uri): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { decoder, info, _ ->
+                val largeur = info.size.width
+                if (largeur > 300) decoder.setTargetSize(300, info.size.height * 300 / largeur)
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+            dossierPerso.mkdirs()
+            val anciennes = dossierPerso.listFiles()?.filter { it.name.startsWith("$id-") }.orEmpty()
+            File(dossierPerso, "$id-${System.currentTimeMillis()}.jpg").outputStream().use {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)
+            }
+            anciennes.forEach { it.delete() }
+        }.isSuccess.also { withContext(Dispatchers.Main) { versionPerso.intValue++ } }
+    }
+
+    suspend fun retirerPhotoPerso(id: String) = withContext(Dispatchers.IO) {
+        dossierPerso.listFiles()?.filter { it.name.startsWith("$id-") }?.forEach { it.delete() }
+        withContext(Dispatchers.Main) { versionPerso.intValue++ }
+    }
 
     val catalogue: Flow<Catalogue> = combine(
         dao.candidats(), dao.mesures(), dao.sondages(), dao.changements(), dao.metas(),
@@ -72,6 +112,10 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
             calendrier = meta["calendrier"]?.let { json.decodeFromString(ListSerializer(Etape.serializer()), it) }.orEmpty(),
             changements = changements.map { json.decodeFromString(Changement.serializer(), it.json) },
             scrutins = meta["scrutins"]?.let { json.decodeFromString(ListSerializer(Scrutin.serializer()), it) }.orEmpty(),
+            questions = meta["questions"]?.let { json.decodeFromString(ListSerializer(QuestionCle.serializer()), it) }.orEmpty(),
+            positions = meta["positions"]?.let {
+                json.decodeFromString(MapSerializer(String.serializer(), MapSerializer(String.serializer(), PositionCle.serializer())), it)
+            }.orEmpty(),
             mandats = meta["mandats"]
                 ?.let { json.decodeFromString(MapSerializer(String.serializer(), ListSerializer(Mandat.serializer())), it) }.orEmpty(),
         )
@@ -204,6 +248,8 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
             add(MetaRow("calendrier", json.encodeToString(ListSerializer(Etape.serializer()), app.calendrier)))
             app.moyenne?.let { add(MetaRow("moyenne", json.encodeToString(Moyenne.serializer(), it))) }
             add(MetaRow("scrutins", json.encodeToString(ListSerializer(Scrutin.serializer()), app.scrutins)))
+            add(MetaRow("questions", json.encodeToString(ListSerializer(QuestionCle.serializer()), app.questions)))
+            add(MetaRow("positions", json.encodeToString(MapSerializer(String.serializer(), MapSerializer(String.serializer(), PositionCle.serializer())), app.positions)))
             add(MetaRow("mandats", json.encodeToString(MapSerializer(String.serializer(), ListSerializer(Mandat.serializer())), app.mandats)))
         }
         dao.remplacer(candidats, mesures, sondages, changements, metas)

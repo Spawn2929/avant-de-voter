@@ -109,6 +109,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun ajouterPhotoPerso(id: String, uri: android.net.Uri) = viewModelScope.launch {
+        if (!repository.ajouterPhotoPerso(id, uri)) _messages.send("Cette image n'a pas pu être lue")
+    }
+
+    fun retirerPhotoPerso(id: String) = viewModelScope.launch { repository.retirerPhotoPerso(id) }
+
     fun setSuivisSeulement(v: Boolean) = viewModelScope.launch { prefs.setSuivisSeulement(v) }
 
     fun setTheme(t: ThemeChoisi) = viewModelScope.launch { prefs.setTheme(t) }

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Quiz
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +67,7 @@ fun PlusScreen(
     onCalendrier: () -> Unit,
     onPriorites: () -> Unit,
     onQuiz: () -> Unit,
+    onBoussole: () -> Unit,
     onReglages: () -> Unit,
     onCredits: () -> Unit,
 ) {
@@ -79,6 +81,7 @@ fun PlusScreen(
         }
         item { LigneMenu(Icons.Outlined.Event, "Calendrier", "Compte à rebours, primaires, parrainages, 1er et 2nd tour", onCalendrier) }
         item { LigneMenu(Icons.Outlined.Checklist, "Mes priorités", "Choisir des mesures sans savoir qui les propose", onPriorites) }
+        item { LigneMenu(Icons.Outlined.Explore, "De quel bord es-tu ?", "10 questions oui / non : vos candidats les plus proches", onBoussole) }
         item { LigneMenu(Icons.Outlined.Quiz, "Qui propose quoi ?", "Une mesure, quatre candidats : deviner l'auteur", onQuiz) }
         item { HorizontalDivider() }
         item { LigneMenu(Icons.Outlined.Settings, "Réglages", "Thème, affichage, mise à jour des données", onReglages) }

@@ -15,6 +15,8 @@ data class Catalogue(
     val changements: List<Changement>, // du plus récent au plus ancien
     val scrutins: List<Scrutin> = emptyList(), // du plus récent au plus ancien
     val mandats: Map<String, List<Mandat>> = emptyMap(),
+    val questions: List<QuestionCle> = emptyList(),
+    val positions: Map<String, Map<String, PositionCle>> = emptyMap(),
 ) {
     val parId: Map<String, Candidat> = candidats.associateBy { it.id }
 

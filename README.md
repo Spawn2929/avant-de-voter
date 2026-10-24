@@ -5,7 +5,7 @@ domaine par domaine, et tous les sondages, d'après les données ouvertes de [20
 (Licence Ouverte 2.0). L'appli n'invente rien : chaque mesure affiche le texte exact de la source, sa nature et un
 lien vers la page d'origine.
 
-Version actuelle : **0.5.1** (lots 1, 2 et 3 complets). Cadrage validé : [CADRAGE-VALIDATION.md](CADRAGE-VALIDATION.md).
+Version actuelle : **0.6.0** (lots 1, 2 et 3 complets). Cadrage validé : [CADRAGE-VALIDATION.md](CADRAGE-VALIDATION.md).
 Installation des téléphones et entretien : [GUIDE-INSTALLATION.md](GUIDE-INSTALLATION.md).
 
 ## Mode d'emploi
@@ -27,6 +27,8 @@ le geste retour ferme l'écran ouvert, puis revient à Domaines.
 
 ### Candidats
 
+- Candidat sans photo publiée : sur sa fiche, **Ajouter une photo (sur ce téléphone)** pour en choisir une dans la
+  galerie. Elle reste sur ce téléphone, n'est jamais publiée ; « Changer » ou « Retirer » à tout moment.
 - Grille des candidats : photo, parti, état du programme, étoile si vous le suivez. Touchez une carte pour la fiche.
 - **Comparer** : laissez le doigt sur une carte, touchez 1 à 3 autres cartes, puis « Comparer ». Le comparateur
   montre un domaine à la fois, les candidats l'un sous l'autre ; glissez pour changer de domaine.
@@ -56,6 +58,11 @@ le geste retour ferme l'écran ouvert, puis revient à Domaines.
 - **Mes priorités** : des mesures sans nom, dans un ordre tiré au hasard ; cochez celles qui vous parlent puis
   « Révéler » montre qui les propose. Rien n'est enregistré, aucun total par candidat.
 - **Qui propose quoi ?** : une mesure, quatre candidats, deviner l'auteur ; série de 10.
+- **De quel bord es-tu ?** : 10 questions de 2027 et moi (retraite à 62 ans, nucléaire, SMIC, Ukraine…), réponse oui,
+  non ou passer. Résultat : les candidats déclarés dont les positions sourcées sont les plus proches de vos réponses
+  (pourcentage d'accord, comparaison possible à partir de 5 questions en commun), votre place sur un axe gauche → extrême
+  droite d'après les blocs de 2027 et moi, et pour chaque question la position de chaque candidat avec sa source.
+  Ce n'est pas une recommandation de vote ; rien n'est enregistré.
 - **Réglages** : thème, candidatures pressenties, candidats suivis et notifications, mise à jour des données,
   version de l'appli et lien vers une nouvelle version.
 - **Crédits et sources** : 2027 et moi, Licence Ouverte, auteur et licence de chaque photo.
@@ -77,6 +84,7 @@ sans rythme fixe : il est normal que la date ne change pas tous les jours. Tout 
 | Version | Contenu |
 |---|---|
 | 0.1 | Robot quotidien, onglets Domaines, Candidats et Plus (Réglages, Crédits), hors-ligne, thème |
+| 0.6 | « De quel bord es-tu ? » (10 questions, proximité, axe gauche-droite) ; photos ajoutées sur le téléphone |
 | 0.5.1 | Photos libres de Wikimedia Commons ajoutées quand 2027 et moi n'en a pas (Dubuisson, Platret), origine indiquée sous la photo |
 | 0.5 | Sondages (liste, fiches, courbe, moyenne 30 jours), comparateur, calendrier, Nouveautés, partage, Mes priorités, quiz, widget, candidats suivis et notifications, recherche, votes au Parlement |
 

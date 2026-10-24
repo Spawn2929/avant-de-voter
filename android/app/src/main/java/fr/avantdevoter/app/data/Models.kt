@@ -37,7 +37,16 @@ data class AppData(
     val calendrier: List<Etape> = emptyList(),
     val scrutins: List<Scrutin> = emptyList(),
     val mandats: Map<String, List<Mandat>> = emptyMap(),
+    val questions: List<QuestionCle> = emptyList(),
+    /** Par candidat, par question : position sourcée (pour, plutot_pour, nuance, plutot_contre, contre, non_connu). */
+    val positions: Map<String, Map<String, PositionCle>> = emptyMap(),
 )
+
+@Serializable
+data class QuestionCle(val id: String, val theme: String = "", val texte: String)
+
+@Serializable
+data class PositionCle(val position: String = "non_connu", val resume: String = "", val source: Ref? = null)
 
 /** Vote au Parlement : position de chaque personnalité (pour, contre, abstention, absent, non_votant). */
 @Serializable
