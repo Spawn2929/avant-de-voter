@@ -105,6 +105,8 @@ data class Photo(
     val auteur: String = "",
     val licence: String = "",
     val legende: String = "",
+    /** « 2027 et moi », ou « ajoutée par l'appli depuis Wikimedia Commons » quand la source n'en avait pas. */
+    val origine: String = "2027 et moi",
 )
 
 @Serializable

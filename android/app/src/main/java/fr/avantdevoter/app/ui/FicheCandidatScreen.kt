@@ -105,7 +105,8 @@ fun FicheCandidatScreen(
                     }
                     candidat.photo?.takeIf { photo != null }?.let { p ->
                         Text(
-                            "Photo : ${p.auteur} · ${p.licence}",
+                            "Photo : ${p.auteur} · ${p.licence}" +
+                                if (p.origine != "2027 et moi") "\n(${p.origine})" else "",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,

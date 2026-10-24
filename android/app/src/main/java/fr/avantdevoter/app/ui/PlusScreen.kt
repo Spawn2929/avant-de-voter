@@ -252,7 +252,7 @@ fun CreditsScreen(vm: MainViewModel, catalogue: Catalogue, onRetour: () -> Unit)
         item {
             TitreSection("Données")
             Text(
-                "Toutes les informations affichées (candidats, mesures, sondages, calendrier) proviennent de « 2027 et moi », " +
+                "Toutes les informations affichées (candidats, mesures, sondages, calendrier, votes) proviennent de « 2027 et moi », " +
                     "publiées sous Licence Ouverte 2.0. Les textes sont repris tels quels : l'appli ne résume, ne reformule " +
                     "et n'évalue rien.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -271,6 +271,7 @@ fun CreditsScreen(vm: MainViewModel, catalogue: Catalogue, onRetour: () -> Unit)
             TitreSection("Photos")
             Text(
                 "Les photos viennent de Wikimedia Commons et ne sont pas sous Licence Ouverte : chacune garde sa licence et son auteur. " +
+                    "Elles sont choisies par 2027 et moi ; quand la source n'en a pas, l'appli ajoute une photo libre de Commons, signalée comme telle. " +
                     "Touchez une ligne pour voir la page d'origine.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -285,7 +286,11 @@ fun CreditsScreen(vm: MainViewModel, catalogue: Catalogue, onRetour: () -> Unit)
                     .padding(vertical = 8.dp),
             ) {
                 Text(c.nom, style = MaterialTheme.typography.bodyLarge)
-                Text("${p.auteur} · ${p.licence}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "${p.auteur} · ${p.licence}" + if (p.origine != "2027 et moi") " · ${p.origine}" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         item {

@@ -5,7 +5,7 @@ domaine par domaine, et tous les sondages, d'après les données ouvertes de [20
 (Licence Ouverte 2.0). L'appli n'invente rien : chaque mesure affiche le texte exact de la source, sa nature et un
 lien vers la page d'origine.
 
-Version actuelle : **0.5.0** (lots 1, 2 et 3 complets). Cadrage validé : [CADRAGE-VALIDATION.md](CADRAGE-VALIDATION.md).
+Version actuelle : **0.5.1** (lots 1, 2 et 3 complets). Cadrage validé : [CADRAGE-VALIDATION.md](CADRAGE-VALIDATION.md).
 Installation des téléphones et entretien : [GUIDE-INSTALLATION.md](GUIDE-INSTALLATION.md).
 
 ## Mode d'emploi
@@ -77,6 +77,7 @@ sans rythme fixe : il est normal que la date ne change pas tous les jours. Tout 
 | Version | Contenu |
 |---|---|
 | 0.1 | Robot quotidien, onglets Domaines, Candidats et Plus (Réglages, Crédits), hors-ligne, thème |
+| 0.5.1 | Photos libres de Wikimedia Commons ajoutées quand 2027 et moi n'en a pas (Dubuisson, Platret), origine indiquée sous la photo |
 | 0.5 | Sondages (liste, fiches, courbe, moyenne 30 jours), comparateur, calendrier, Nouveautés, partage, Mes priorités, quiz, widget, candidats suivis et notifications, recherche, votes au Parlement |
 
 ## Organisation du dépôt
