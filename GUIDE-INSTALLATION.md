@@ -39,7 +39,7 @@ Ce n'est pas grave si vous l'oubliez : l'appli se met aussi à jour à l'ouvertu
 Les photos de Selma Labib, Benoît Mathieu, Antoine Mikolajczak et Manolo Mlekuz ne sont pas libres de droits : elles ne
 sont pas publiées, chacun les ajoute sur son téléphone.
 
-1. Fred envoie à Céline par WhatsApp les 4 fichiers du dossier `C:\Developpement_Claude\Avant_de_voterpk\photos`
+1. Fred envoie à Céline par WhatsApp les 4 fichiers du dossier `C:\Developpement_Claude\Avant_de_voter\apk\photos`
    (en « Photo » suffit) ; sur le téléphone, appui long sur chaque photo → **Enregistrer**.
 2. Dans l'appli : **Candidats** → touchez le candidat → **Ajouter une photo (sur ce téléphone)** → choisissez sa photo.
 3. Recommencez pour les 3 autres.
