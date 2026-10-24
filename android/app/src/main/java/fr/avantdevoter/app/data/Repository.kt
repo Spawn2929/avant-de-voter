@@ -2,6 +2,7 @@ package fr.avantdevoter.app.data
 
 import android.content.Context
 import fr.avantdevoter.app.BuildConfig
+import fr.avantdevoter.app.sync.Notifications
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -22,7 +23,8 @@ import java.util.concurrent.TimeUnit
 /** Issue d'une mise à jour des données. */
 sealed interface Resultat {
     data object DejaAJour : Resultat
-    data object MisAJour : Resultat
+    /** Données remplacées ; [nouveaux] = changements apparus depuis la mise à jour précédente. */
+    data class MisAJour(val nouveaux: List<Changement>) : Resultat
     /** Le robot publie un format plus récent : il faut installer la nouvelle version de l'appli. */
     data object AppliTropAncienne : Resultat
     data class Echec(val message: String) : Resultat
@@ -69,6 +71,9 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
             moyenne = meta["moyenne"]?.let { json.decodeFromString(Moyenne.serializer(), it) },
             calendrier = meta["calendrier"]?.let { json.decodeFromString(ListSerializer(Etape.serializer()), it) }.orEmpty(),
             changements = changements.map { json.decodeFromString(Changement.serializer(), it.json) },
+            scrutins = meta["scrutins"]?.let { json.decodeFromString(ListSerializer(Scrutin.serializer()), it) }.orEmpty(),
+            mandats = meta["mandats"]
+                ?.let { json.decodeFromString(MapSerializer(String.serializer(), ListSerializer(Mandat.serializer())), it) }.orEmpty(),
         )
     }.flowOn(Dispatchers.Default)
 
@@ -76,9 +81,11 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
      * Premier lancement : la base est remplie avec la copie des données intégrée à l'APK,
      * pour que tout s'affiche tout de suite, même sans réseau.
      */
-    suspend fun importerCopieIntegree() = verrou.withLock {
+    suspend fun importerCopieIntegree(remplacer: Boolean = false) = verrou.withLock {
         withContext(Dispatchers.IO) {
-            if (dao.nbCandidats() > 0) return@withContext
+            // Après une mise à jour de l'appli, la copie de l'APK (plus récente, complète) remplace l'ancienne base,
+            // en gardant le journal des nouveautés déjà connu (pas de notification en double).
+            if (dao.nbCandidats() > 0 && !remplacer) return@withContext
             val assets = context.assets
             val noms = assets.list("snapshot").orEmpty()
             if ("app-data.json" !in noms) return@withContext // APK fabriqué sans copie : la synchro s'en chargera
@@ -94,7 +101,10 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
                     }
                 }
             }
-            enregistrer(app, changesBytes?.let { json.decodeFromString(Changes.serializer(), it.decodeToString()) })
+            val changes = changesBytes?.let { json.decodeFromString(Changes.serializer(), it.decodeToString()) }
+            val connus = dao.changementsNow().map { json.decodeFromString(Changement.serializer(), it.json) }
+            // La copie de l'APK peut être plus ancienne que les données déjà reçues : on garde le journal le plus long.
+            enregistrer(app, if (changes == null || connus.size > changes.changements.size) Changes(FORMAT_LU, connus) else changes)
             prefs.setCopieIntegree(sha256(appBytes))
         }
     }
@@ -117,9 +127,12 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
                 if (app.format > FORMAT_LU) return@withContext Resultat.AppliTropAncienne
                 val changes = json.decodeFromString(Changes.serializer(), changesBytes.decodeToString())
                 recupererPhotos(app)
+                val avant = dao.changementsNow().map { json.decodeFromString(Changement.serializer(), it.json) }
                 enregistrer(app, changes)
                 prefs.setMisAJour(attendu, System.currentTimeMillis())
-                Resultat.MisAJour
+                val nouveaux = nouveauxChangements(avant, changes.changements)
+                Notifications.signaler(context, aNotifier(nouveaux, prefs.suivisNow()), app)
+                Resultat.MisAJour(nouveaux)
             } catch (_: java.net.UnknownHostException) {
                 Resultat.Echec("pas de connexion internet")
             } catch (_: java.net.SocketTimeoutException) {
@@ -190,6 +203,8 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
             add(MetaRow("noms_hors_liste", json.encodeToString(MapSerializer(String.serializer(), String.serializer()), app.nomsHorsListe)))
             add(MetaRow("calendrier", json.encodeToString(ListSerializer(Etape.serializer()), app.calendrier)))
             app.moyenne?.let { add(MetaRow("moyenne", json.encodeToString(Moyenne.serializer(), it))) }
+            add(MetaRow("scrutins", json.encodeToString(ListSerializer(Scrutin.serializer()), app.scrutins)))
+            add(MetaRow("mandats", json.encodeToString(MapSerializer(String.serializer(), ListSerializer(Mandat.serializer())), app.mandats)))
         }
         dao.remplacer(candidats, mesures, sondages, changements, metas)
     }

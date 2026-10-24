@@ -50,17 +50,47 @@ import fr.avantdevoter.app.data.dateCourte
 import fr.avantdevoter.app.data.libelleEtatAffaire
 import fr.avantdevoter.app.data.libelleStatut
 import fr.avantdevoter.app.data.mesuresDu
+import fr.avantdevoter.app.data.Ref
+import fr.avantdevoter.app.data.libelleChambre
+import fr.avantdevoter.app.data.libellePosition
+import fr.avantdevoter.app.data.texteDePartage
+import fr.avantdevoter.app.data.votesDe
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.remember
 
 /** Fiche complète d'un candidat. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FicheCandidatScreen(vm: MainViewModel, catalogue: Catalogue, candidat: Candidat, onRetour: () -> Unit, onPhoto: () -> Unit) {
+fun FicheCandidatScreen(
+    vm: MainViewModel,
+    catalogue: Catalogue,
+    candidat: Candidat,
+    suivi: Boolean,
+    onRetour: () -> Unit,
+    onPhoto: () -> Unit,
+    onSondages: () -> Unit,
+) {
     val ouvrir = rememberOuvrir()
     val photo = vm.repository.photo(candidat)
+    val votes = remember(catalogue.scrutins, candidat.id) { votesDe(catalogue.scrutins, candidat.id) }
+    val mandats = catalogue.mandats[candidat.id].orEmpty()
+    val testeDansSondages = remember(catalogue.sondages, candidat.id) {
+        catalogue.sondages.any { s -> s.hypotheses.any { candidat.id in it.scores } }
+    }
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text(candidat.nom) },
             navigationIcon = { IconButton(onClick = onRetour) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Retour") } },
+            actions = {
+                IconButton(onClick = { vm.basculerSuivi(candidat.id, candidat.nom) }) {
+                    Icon(
+                        if (suivi) Icons.Outlined.Star else Icons.Outlined.StarOutline,
+                        if (suivi) "Ne plus suivre" else "Suivre ce candidat",
+                    )
+                }
+            },
         )
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
             // En-tête : photo, crédit, parti, statut
@@ -89,6 +119,9 @@ fun FicheCandidatScreen(vm: MainViewModel, catalogue: Catalogue, candidat: Candi
                     }
                     Spacer(Modifier.height(4.dp))
                     PastilleEtat(candidat)
+                    if (testeDansSondages) {
+                        TextButton(onClick = onSondages) { Text("Voir ses scores dans les sondages") }
+                    }
                 }
             }
             item {
@@ -138,6 +171,52 @@ fun FicheCandidatScreen(vm: MainViewModel, catalogue: Catalogue, candidat: Candi
                     }
                     candidat.affaires.forEach { BlocAffaire(it) }
                 }
+                SectionRepliable(
+                    "Votes au Parlement (selon 2027 et moi)",
+                    "votes-${candidat.id}",
+                    sousTitre = when (votes.size) {
+                        0 -> "Aucun vote recensé"
+                        1 -> "1 vote recensé"
+                        else -> "${votes.size} votes recensés"
+                    },
+                ) {
+                    if (mandats.isNotEmpty()) {
+                        Text("Mandats", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(bottom = 4.dp))
+                        mandats.forEach { m ->
+                            val periode = when {
+                                m.debut.isBlank() -> ""
+                                m.fin.isBlank() -> " (depuis le ${dateCourte(m.debut)})"
+                                else -> " (${dateCourte(m.debut)} – ${dateCourte(m.fin)})"
+                            }
+                            Text("${libelleChambre(m.chambre)} : ${m.detail}$periode", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    if (votes.isEmpty()) {
+                        Text(
+                            "Aucun vote au Parlement recensé par 2027 et moi.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
+                    votes.forEach { (scrutin, position) ->
+                        Column(Modifier.padding(bottom = 10.dp)) {
+                            Text(
+                                "${dateCourte(scrutin.date)} · ${libelleChambre(scrutin.chambre)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(scrutin.titre, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "Vote : ${libellePosition(position)}" + (if (scrutin.resultat.isNotBlank()) " · texte ${scrutin.resultat}" else ""),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            if (scrutin.url.isNotBlank()) LienSource(Ref("Scrutin officiel", scrutin.url, ""), texte = "Source : scrutin officiel")
+                        }
+                    }
+                }
                 HorizontalDivider()
             }
 
@@ -171,7 +250,7 @@ fun FicheCandidatScreen(vm: MainViewModel, catalogue: Catalogue, candidat: Candi
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 8.dp)) {
                             if (mesures.isEmpty()) AucuneProposition(candidat)
-                            mesures.forEach { m -> CarteMesure(m) { vm.message("Texte de la mesure copié") } }
+                            mesures.forEach { m -> CarteMesure(m, texteDePartage(candidat, t.label, m)) { vm.message("Texte de la mesure copié") } }
                         }
                     }
                     HorizontalDivider()

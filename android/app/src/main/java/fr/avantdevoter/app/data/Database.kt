@@ -64,6 +64,9 @@ interface DataDao {
     @Query("SELECT * FROM changement ORDER BY n")
     fun changements(): Flow<List<ChangementRow>>
 
+    @Query("SELECT * FROM changement ORDER BY n")
+    suspend fun changementsNow(): List<ChangementRow>
+
     @Query("SELECT * FROM meta")
     fun metas(): Flow<List<MetaRow>>
 

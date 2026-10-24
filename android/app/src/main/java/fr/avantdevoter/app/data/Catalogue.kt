@@ -12,7 +12,9 @@ data class Catalogue(
     val nomsHorsListe: Map<String, String>,
     val moyenne: Moyenne?,
     val calendrier: List<Etape>,
-    val changements: List<Changement>,
+    val changements: List<Changement>, // du plus récent au plus ancien
+    val scrutins: List<Scrutin> = emptyList(), // du plus récent au plus ancien
+    val mandats: Map<String, List<Mandat>> = emptyMap(),
 ) {
     val parId: Map<String, Candidat> = candidats.associateBy { it.id }
 
@@ -30,6 +32,11 @@ data class Catalogue(
 /** Statuts affichés selon les filtres. Ceux qui ont renoncé ne sont jamais listés (ils restent dans les sondages). */
 fun filtrer(candidats: List<Candidat>, declares: Boolean, pressentis: Boolean): List<Candidat> =
     candidats.filter { (declares && it.statut == "declare") || (pressentis && it.statut == "pressenti") }
+
+/** Mêmes filtres, plus « Suivis » : seulement les candidats étoilés (déclarés ou pressentis). */
+fun filtrer(candidats: List<Candidat>, r: Reglages): List<Candidat> =
+    if (r.suivisSeulement) candidats.filter { it.id in r.suivis && it.statut != "renonce" }
+    else filtrer(candidats, r.declares, r.pressentis)
 
 fun mesuresDu(candidat: Candidat, theme: String): List<Mesure> = candidat.mesures.filter { it.theme == theme }
 

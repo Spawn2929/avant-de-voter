@@ -22,6 +22,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -148,10 +155,24 @@ fun LienSource(ref: Ref?, modifier: Modifier = Modifier, texte: String = ligneSo
     }
 }
 
-/** Une mesure : badge de nature, texte exact de la source, lien vers la source. Appui long : copier. */
+/** Ouvre le menu Partager d'Android avec un texte. */
+@Composable
+fun rememberPartager(): (String) -> Unit {
+    val context = LocalContext.current
+    return { texte ->
+        val envoi = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, texte)
+        context.startActivity(Intent.createChooser(envoi, "Partager la mesure"))
+    }
+}
+
+/**
+ * Une mesure : badge de nature, texte exact de la source, lien vers la source, bouton Partager.
+ * Appui long : copier le texte. [partage] = texte envoyé par « Partager » (null : pas de bouton).
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun CarteMesure(mesure: Mesure, onCopie: () -> Unit) {
+fun CarteMesure(mesure: Mesure, partage: String? = null, onCopie: () -> Unit) {
+    val partager = rememberPartager()
     val clipboard = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
     Surface(
@@ -172,8 +193,16 @@ fun CarteMesure(mesure: Mesure, onCopie: () -> Unit) {
             ),
     ) {
         Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 4.dp)) {
-            BadgeNature(mesure.nature)
-            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BadgeNature(mesure.nature)
+                Spacer(Modifier.weight(1f))
+                if (partage != null) {
+                    IconButton(onClick = { partager(partage) }, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Outlined.Share, "Partager la mesure", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
             Text(mesure.texte, style = MaterialTheme.typography.bodyMedium)
             LienSource(mesure.source)
         }
@@ -193,20 +222,37 @@ fun AucuneProposition(candidat: Candidat) {
     }
 }
 
-/** Filtres de statut : déclarés (par défaut) et pressentis. Ceux qui ont renoncé ne sont pas listés. */
+/**
+ * Filtres de statut : déclarés (par défaut) et pressentis, ou seulement les candidats suivis (étoile).
+ * Ceux qui ont renoncé ne sont pas listés.
+ */
 @Composable
-fun FiltresStatut(reglages: Reglages, onChange: (declares: Boolean, pressentis: Boolean) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("Afficher :", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun FiltresStatut(
+    reglages: Reglages,
+    onChange: (declares: Boolean, pressentis: Boolean) -> Unit,
+    onSuivis: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         FilterChip(
-            selected = reglages.declares,
-            onClick = { onChange(!reglages.declares, reglages.pressentis) },
+            selected = !reglages.suivisSeulement && reglages.declares,
+            onClick = { onSuivis(false); onChange(!reglages.declares || reglages.suivisSeulement, reglages.pressentis) },
             label = { Text("Déclarés") },
         )
         FilterChip(
-            selected = reglages.pressentis,
-            onClick = { onChange(reglages.declares, !reglages.pressentis) },
+            selected = !reglages.suivisSeulement && reglages.pressentis,
+            onClick = { onSuivis(false); onChange(reglages.declares, !reglages.pressentis || reglages.suivisSeulement) },
             label = { Text("Pressentis") },
+        )
+        FilterChip(
+            selected = reglages.suivisSeulement,
+            onClick = { onSuivis(!reglages.suivisSeulement) },
+            leadingIcon = { Icon(Icons.Outlined.StarOutline, null, Modifier.size(18.dp)) },
+            label = { Text("Suivis (${reglages.suivis.size})") },
         )
     }
 }

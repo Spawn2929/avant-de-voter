@@ -35,6 +35,30 @@ data class AppData(
     @SerialName("noms_hors_liste") val nomsHorsListe: Map<String, String> = emptyMap(),
     val moyenne: Moyenne? = null,
     val calendrier: List<Etape> = emptyList(),
+    val scrutins: List<Scrutin> = emptyList(),
+    val mandats: Map<String, List<Mandat>> = emptyMap(),
+)
+
+/** Vote au Parlement : position de chaque personnalité (pour, contre, abstention, absent, non_votant). */
+@Serializable
+data class Scrutin(
+    val id: String,
+    val chambre: String = "",
+    val date: String,
+    val titre: String = "",
+    val type: String = "",
+    val resultat: String = "",
+    val url: String = "",
+    val votes: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class Mandat(
+    val chambre: String = "",
+    val detail: String = "",
+    val debut: String = "",
+    val fin: String = "",
+    val source: Ref? = null,
 )
 
 @Serializable

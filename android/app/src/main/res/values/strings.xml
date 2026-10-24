@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Avant de voter</string>
+    <string name="widget_description">Compte à rebours du 1er tour et moyenne des sondages</string>
 </resources>

@@ -19,6 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,7 +45,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import fr.avantdevoter.app.BuildConfig
+import fr.avantdevoter.app.sync.Notifications
 import fr.avantdevoter.app.data.Catalogue
 import fr.avantdevoter.app.data.Reglages
 import fr.avantdevoter.app.data.ThemeChoisi
@@ -51,9 +59,16 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** Onglet Plus : accès aux Réglages et aux Crédits (le calendrier, le quiz et « Mes priorités » viendront ici). */
+/** Onglet Plus : calendrier, Mes priorités, quiz, réglages et crédits. */
 @Composable
-fun PlusScreen(catalogue: Catalogue, onReglages: () -> Unit, onCredits: () -> Unit) {
+fun PlusScreen(
+    catalogue: Catalogue,
+    onCalendrier: () -> Unit,
+    onPriorites: () -> Unit,
+    onQuiz: () -> Unit,
+    onReglages: () -> Unit,
+    onCredits: () -> Unit,
+) {
     LazyColumn(Modifier.fillMaxSize()) {
         item {
             Text(
@@ -62,6 +77,10 @@ fun PlusScreen(catalogue: Catalogue, onReglages: () -> Unit, onCredits: () -> Un
                 modifier = Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp),
             )
         }
+        item { LigneMenu(Icons.Outlined.Event, "Calendrier", "Compte à rebours, primaires, parrainages, 1er et 2nd tour", onCalendrier) }
+        item { LigneMenu(Icons.Outlined.Checklist, "Mes priorités", "Choisir des mesures sans savoir qui les propose", onPriorites) }
+        item { LigneMenu(Icons.Outlined.Quiz, "Qui propose quoi ?", "Une mesure, quatre candidats : deviner l'auteur", onQuiz) }
+        item { HorizontalDivider() }
         item { LigneMenu(Icons.Outlined.Settings, "Réglages", "Thème, affichage, mise à jour des données", onReglages) }
         item { LigneMenu(Icons.Outlined.Info, "Crédits et sources", "2027 et moi, licences des photos", onCredits) }
         item { PiedDePage(catalogue.source) }
@@ -147,6 +166,31 @@ fun ReglagesScreen(vm: MainViewModel, catalogue: Catalogue, reglages: Reglages, 
                 }
                 Spacer(Modifier.width(12.dp))
                 Switch(checked = reglages.pressentis, onCheckedChange = null)
+            }
+        }
+        item {
+            HorizontalDivider(Modifier.padding(top = 12.dp))
+            TitreSection("Candidats suivis et notifications")
+            val context = LocalContext.current
+            val autorisees = remember(verifie, reglages.suivis) { Notifications.autorisees(context) }
+            Text(
+                if (reglages.suivis.isEmpty()) "Aucun candidat suivi. Touchez l'étoile en haut de la fiche d'un candidat pour le suivre."
+                else "Suivis : " + reglages.suivis.mapNotNull { catalogue.parId[it]?.nom }.sorted().joinToString(", "),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                "L'appli prévient quand un candidat suivi change (nouvelle mesure, programme complété, statut). " +
+                    if (autorisees) "Notifications autorisées." else "Notifications non autorisées sur ce téléphone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            if (!autorisees) {
+                TextButton(onClick = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                    )
+                }) { Text("Autoriser les notifications") }
             }
         }
         item {

@@ -1,12 +1,17 @@
 package fr.avantdevoter.app.ui
 
+import android.Manifest
+import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -17,9 +22,11 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -40,9 +47,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import fr.avantdevoter.app.data.Catalogue
 import fr.avantdevoter.app.data.Reglages
 import fr.avantdevoter.app.data.ThemeChoisi
+import fr.avantdevoter.app.sync.Notifications
 import fr.avantdevoter.app.ui.theme.AvantDeVoterTheme
 import kotlinx.coroutines.launch
 
@@ -53,6 +62,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        lireIntent(intent)
         setContent {
             val reglages by vm.reglages.collectAsState()
             val sombre = when (reglages?.theme) {
@@ -73,12 +83,24 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        lireIntent(intent)
+    }
+
+    /** Toucher une notification ouvre l'onglet Nouveautés. */
+    private fun lireIntent(intent: Intent?) {
+        intent?.getStringExtra(Notifications.EXTRA_ONGLET)?.let { vm.demanderOnglet(it) }
+    }
 }
 
-/** Onglets de la barre du bas (Sondages et Nouveautés arrivent à l'étape 2). */
+/** Onglets de la barre du bas, dans l'ordre du cadrage. */
 private enum class Onglet(val label: String, val icone: ImageVector) {
     DOMAINES("Domaines", Icons.Outlined.Category),
     CANDIDATS("Candidats", Icons.Outlined.Groups),
+    SONDAGES("Sondages", Icons.Outlined.BarChart),
+    NOUVEAUTES("Nouveautés", Icons.Outlined.NewReleases),
     PLUS("Plus", Icons.Outlined.MoreHoriz),
 }
 
@@ -86,6 +108,13 @@ private enum class Onglet(val label: String, val icone: ImageVector) {
 private sealed interface Ecran {
     data class Fiche(val id: String) : Ecran
     data class Photo(val id: String) : Ecran
+    data class Sondage(val id: String, val institut: String?) : Ecran
+    data class Scores(val id: String) : Ecran
+    data class Comparer(val ids: List<String>) : Ecran
+    data object Calendrier : Ecran
+    data object Priorites : Ecran
+    data object Quiz : Ecran
+    data object Recherche : Ecran
     data object Reglages : Ecran
     data object Credits : Ecran
 }
@@ -93,24 +122,43 @@ private sealed interface Ecran {
 private fun encoder(e: Ecran) = when (e) {
     is Ecran.Fiche -> "fiche:${e.id}"
     is Ecran.Photo -> "photo:${e.id}"
+    is Ecran.Sondage -> "sondage:${e.id}:${e.institut.orEmpty()}"
+    is Ecran.Scores -> "scores:${e.id}"
+    is Ecran.Comparer -> "comparer:${e.ids.joinToString(",")}"
+    Ecran.Calendrier -> "calendrier"
+    Ecran.Priorites -> "priorites"
+    Ecran.Quiz -> "quiz"
+    Ecran.Recherche -> "recherche"
     Ecran.Reglages -> "reglages"
     Ecran.Credits -> "credits"
 }
 
-private fun decoder(s: String): Ecran? = when {
-    s.startsWith("fiche:") -> Ecran.Fiche(s.removePrefix("fiche:"))
-    s.startsWith("photo:") -> Ecran.Photo(s.removePrefix("photo:"))
-    s == "reglages" -> Ecran.Reglages
-    s == "credits" -> Ecran.Credits
-    else -> null
+private fun decoder(s: String): Ecran? {
+    val (type, reste) = s.split(':', limit = 2).let { it[0] to it.getOrElse(1) { "" } }
+    return when (type) {
+        "fiche" -> Ecran.Fiche(reste)
+        "photo" -> Ecran.Photo(reste)
+        "sondage" -> reste.split(':', limit = 2).let { Ecran.Sondage(it[0], it.getOrElse(1) { "" }.ifBlank { null }) }
+        "scores" -> Ecran.Scores(reste)
+        "comparer" -> Ecran.Comparer(reste.split(',').filter { it.isNotBlank() })
+        "calendrier" -> Ecran.Calendrier
+        "priorites" -> Ecran.Priorites
+        "quiz" -> Ecran.Quiz
+        "recherche" -> Ecran.Recherche
+        "reglages" -> Ecran.Reglages
+        "credits" -> Ecran.Credits
+        else -> null
+    }
 }
 
 @Composable
 private fun AppRoot(vm: MainViewModel) {
     val catalogue by vm.catalogue.collectAsState()
     val reglages by vm.reglages.collectAsState()
+    val ongletDemande by vm.ongletDemande.collectAsState()
     val cat = catalogue ?: return // base pas encore lue : écran vide un instant
     val r = reglages ?: return
+    val context = LocalContext.current
 
     // Pile des écrans ouverts, gardée en cas de rotation.
     var pile by rememberSaveable { mutableStateOf(listOf<String>()) }
@@ -119,10 +167,28 @@ private fun AppRoot(vm: MainViewModel) {
     val snackbar = remember { SnackbarHostState() }
     val pager = rememberPagerState { Onglet.entries.size }
 
+    // Autorisation d'envoyer des notifications : demandée quand on suit un premier candidat (Android 13 et plus).
+    val demande = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (!ok) vm.message("Sans autorisation, l'appli ne pourra pas vous prévenir. Modifiable dans Plus → Réglages.")
+    }
+    LaunchedEffect(Unit) {
+        vm.demanderNotifications.collect {
+            if (Build.VERSION.SDK_INT >= 33 && !Notifications.autorisees(context)) demande.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     LaunchedEffect(Unit) {
         vm.messages.collect { msg ->
             snackbar.currentSnackbarData?.dismiss()
             launch { snackbar.showSnackbar(msg) }
+        }
+    }
+
+    LaunchedEffect(ongletDemande) {
+        if (ongletDemande == Notifications.ONGLET_NOUVEAUTES) {
+            pile = emptyList()
+            pager.scrollToPage(Onglet.NOUVEAUTES.ordinal)
+            vm.demanderOnglet(null)
         }
     }
 
@@ -132,36 +198,63 @@ private fun AppRoot(vm: MainViewModel) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // chaque écran gère la barre d'état lui-même
         snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = { if (dessus !is Ecran.Photo) BarreOnglets(pager) },
+        bottomBar = { if (dessus !is Ecran.Photo) BarreOnglets(pager) { pile = emptyList() } },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             Onglets(vm, pager, cat, r, ouvrir, visible = dessus == null)
-            when (dessus) {
-                is Ecran.Fiche -> {
-                    val c = cat.parId[dessus.id]
-                    if (c == null) fermer() else Surface(Modifier.fillMaxSize()) {
-                        FicheCandidatScreen(vm, cat, c, onRetour = fermer, onPhoto = { ouvrir(Ecran.Photo(c.id)) })
-                    }
+            if (dessus != null) {
+                Surface(Modifier.fillMaxSize()) {
+                    EcranDessus(vm, cat, r, dessus, ouvrir, fermer, context)
                 }
-                is Ecran.Photo -> cat.parId[dessus.id]?.let { PhotoPleinEcran(vm, it, fermer) } ?: fermer()
-                Ecran.Reglages -> Surface(Modifier.fillMaxSize()) { ReglagesScreen(vm, cat, r, fermer) }
-                Ecran.Credits -> Surface(Modifier.fillMaxSize()) { CreditsScreen(vm, cat, fermer) }
-                null -> {}
             }
         }
     }
 }
 
 @Composable
-private fun BarreOnglets(pager: PagerState) {
+private fun EcranDessus(
+    vm: MainViewModel,
+    cat: Catalogue,
+    r: Reglages,
+    dessus: Ecran,
+    ouvrir: (Ecran) -> Unit,
+    fermer: () -> Unit,
+    context: android.content.Context,
+) {
+    when (dessus) {
+        is Ecran.Fiche -> {
+            val c = cat.parId[dessus.id]
+            if (c == null) LaunchedEffect(Unit) { fermer() }
+            else FicheCandidatScreen(
+                vm, cat, c, suivi = c.id in r.suivis,
+                onRetour = fermer,
+                onPhoto = { ouvrir(Ecran.Photo(c.id)) },
+                onSondages = { ouvrir(Ecran.Scores(c.id)) },
+            )
+        }
+        is Ecran.Photo -> cat.parId[dessus.id]?.let { PhotoPleinEcran(vm, it, fermer) } ?: LaunchedEffect(Unit) { fermer() }
+        is Ecran.Sondage -> FicheSondageScreen(vm, cat, dessus.id, dessus.institut, fermer) { ouvrir(Ecran.Scores(it)) }
+        is Ecran.Scores -> ScoresCandidatScreen(vm, cat, dessus.id, fermer) { ouvrir(Ecran.Sondage(it, null)) }
+        is Ecran.Comparer -> ComparateurScreen(vm, cat, dessus.ids, fermer) { ouvrir(Ecran.Fiche(it)) }
+        Ecran.Calendrier -> CalendrierScreen(cat, fermer)
+        Ecran.Priorites -> PrioritesScreen(vm, cat, fermer)
+        Ecran.Quiz -> QuizScreen(vm, cat, fermer)
+        Ecran.Recherche -> RechercheScreen(vm, cat, r, fermer) { ouvrir(Ecran.Fiche(it)) }
+        Ecran.Reglages -> ReglagesScreen(vm, cat, r, fermer)
+        Ecran.Credits -> CreditsScreen(vm, cat, fermer)
+    }
+}
+
+@Composable
+private fun BarreOnglets(pager: PagerState, onToucher: () -> Unit) {
     val scope = rememberCoroutineScope()
     NavigationBar {
         Onglet.entries.forEachIndexed { i, o ->
             NavigationBarItem(
                 selected = pager.currentPage == i,
-                onClick = { scope.launch { pager.animateScrollToPage(i) } },
+                onClick = { onToucher(); scope.launch { pager.animateScrollToPage(i) } },
                 icon = { Icon(o.icone, null) },
-                label = { Text(o.label) },
+                label = { Text(o.label, maxLines = 1, softWrap = false) },
             )
         }
     }
@@ -175,10 +268,20 @@ private fun Onglets(vm: MainViewModel, pager: PagerState, cat: Catalogue, r: Reg
     BackHandler(enabled = visible && pager.currentPage != 0) { scope.launch { pager.animateScrollToPage(0) } }
 
     HorizontalPager(state = pager, beyondViewportPageCount = 1, modifier = Modifier.fillMaxSize()) { page ->
+        val fiche: (String) -> Unit = { ouvrir(Ecran.Fiche(it)) }
         when (Onglet.entries[page]) {
-            Onglet.DOMAINES -> DomainesScreen(vm, cat, r) { ouvrir(Ecran.Fiche(it)) }
-            Onglet.CANDIDATS -> CandidatsScreen(vm, cat, r) { ouvrir(Ecran.Fiche(it)) }
-            Onglet.PLUS -> PlusScreen(cat, onReglages = { ouvrir(Ecran.Reglages) }, onCredits = { ouvrir(Ecran.Credits) })
+            Onglet.DOMAINES -> DomainesScreen(vm, cat, r, fiche, onCalendrier = { ouvrir(Ecran.Calendrier) }, onRecherche = { ouvrir(Ecran.Recherche) })
+            Onglet.CANDIDATS -> CandidatsScreen(vm, cat, r, fiche) { ouvrir(Ecran.Comparer(it)) }
+            Onglet.SONDAGES -> SondagesScreen(vm, cat, onSondage = { id, institut -> ouvrir(Ecran.Sondage(id, institut)) }) { ouvrir(Ecran.Scores(it)) }
+            Onglet.NOUVEAUTES -> NouveautesScreen(vm, cat, r, fiche) { ouvrir(Ecran.Sondage(it, null)) }
+            Onglet.PLUS -> PlusScreen(
+                cat,
+                onCalendrier = { ouvrir(Ecran.Calendrier) },
+                onPriorites = { ouvrir(Ecran.Priorites) },
+                onQuiz = { ouvrir(Ecran.Quiz) },
+                onReglages = { ouvrir(Ecran.Reglages) },
+                onCredits = { ouvrir(Ecran.Credits) },
+            )
         }
     }
 }

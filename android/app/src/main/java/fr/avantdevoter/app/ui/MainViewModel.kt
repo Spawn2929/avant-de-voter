@@ -11,6 +11,7 @@ import fr.avantdevoter.app.data.Resultat
 import fr.avantdevoter.app.data.ThemeChoisi
 import fr.avantdevoter.app.data.VersionPubliee
 import fr.avantdevoter.app.data.estPlusRecente
+import fr.avantdevoter.app.sync.AvantDeVoterWidget
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,10 +50,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launch {
-            repository.importerCopieIntegree()
-            // À l'ouverture : mise à jour si la dernière vérification date de plus de 24 h.
+            val appliMiseAJour = prefs.nouvelleVersionDeLAppli(BuildConfig.VERSION_CODE.toLong())
+            repository.importerCopieIntegree(remplacer = appliMiseAJour)
+            // À l'ouverture : mise à jour si l'appli vient d'être mise à jour
+            // ou si la dernière vérification date de plus de 24 h.
             val derniere = prefs.verificationNow()
-            if (derniere == null || System.currentTimeMillis() - derniere > 24 * 3600_000L) mettreAJour(silencieux = true)
+            if (appliMiseAJour || derniere == null || System.currentTimeMillis() - derniere > 24 * 3600_000L) {
+                mettreAJour(silencieux = true)
+            }
         }
     }
 
@@ -63,14 +68,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _enCours.value = true
             val r = repository.mettreAJour()
             _enCours.value = false
+            AvantDeVoterWidget.rafraichir(getApplication())
             _appliTropAncienne.value = r is Resultat.AppliTropAncienne
             val msg = when (r) {
-                Resultat.MisAJour -> "Données mises à jour"
+                is Resultat.MisAJour -> "Données mises à jour" +
+                    if (r.nouveaux.isNotEmpty()) " : ${r.nouveaux.size} nouveauté${if (r.nouveaux.size > 1) "s" else ""}" else ""
                 Resultat.DejaAJour -> "Les données sont déjà à jour"
                 Resultat.AppliTropAncienne -> "Installez la nouvelle version de l'appli pour avoir les dernières données"
                 is Resultat.Echec -> "Mise à jour impossible (${r.message}). Les données déjà enregistrées restent consultables."
             }
-            if (!silencieux || r == Resultat.MisAJour || r == Resultat.AppliTropAncienne) _messages.send(msg)
+            if (!silencieux || r is Resultat.MisAJour || r == Resultat.AppliTropAncienne) _messages.send(msg)
         }
     }
 
@@ -84,6 +91,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun message(texte: String) {
         viewModelScope.launch { _messages.send(texte) }
     }
+
+    /** Onglet à afficher à l'ouverture (toucher une notification ouvre Nouveautés). */
+    private val _ongletDemande = MutableStateFlow<String?>(null)
+    val ongletDemande: StateFlow<String?> = _ongletDemande.asStateFlow()
+    fun demanderOnglet(o: String?) { _ongletDemande.value = o }
+
+    /** Vrai quand il faut demander l'autorisation d'envoyer des notifications (premier candidat étoilé). */
+    private val _demanderNotifications = Channel<Unit>(Channel.CONFLATED)
+    val demanderNotifications = _demanderNotifications.receiveAsFlow()
+
+    fun basculerSuivi(id: String, nom: String) {
+        viewModelScope.launch {
+            val suivi = prefs.basculerSuivi(id)
+            _messages.send(if (suivi) "Vous suivez $nom : l'appli vous préviendra de ses changements" else "Vous ne suivez plus $nom")
+            if (suivi) _demanderNotifications.send(Unit)
+        }
+    }
+
+    fun setSuivisSeulement(v: Boolean) = viewModelScope.launch { prefs.setSuivisSeulement(v) }
 
     fun setTheme(t: ThemeChoisi) = viewModelScope.launch { prefs.setTheme(t) }
     fun setFiltres(declares: Boolean, pressentis: Boolean) = viewModelScope.launch { prefs.setFiltres(declares, pressentis) }

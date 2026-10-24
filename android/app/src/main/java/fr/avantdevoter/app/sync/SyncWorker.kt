@@ -24,7 +24,9 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
 
     override suspend fun doWork(): Result {
         val repository = (applicationContext as AvantDeVoterApp).repository
-        return when (repository.mettreAJour()) {
+        val r = repository.mettreAJour()
+        AvantDeVoterWidget.rafraichir(applicationContext) // compte à rebours du jour, même sans nouvelles données
+        return when (r) {
             is Resultat.Echec -> if (runAttemptCount < 5) Result.retry() else Result.success()
             else -> Result.success()
         }

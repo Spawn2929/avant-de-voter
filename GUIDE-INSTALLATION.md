@@ -34,6 +34,13 @@ Sans ce réglage, OnePlus peut retarder la vérification quotidienne quand l'app
 
 Ce n'est pas grave si vous l'oubliez : l'appli se met aussi à jour à l'ouverture.
 
+### 🙋 Notifications et widget (facultatif)
+
+1. Dans l'appli, ouvrez la fiche d'un candidat et touchez l'**étoile** en haut à droite.
+2. Android demande « Autoriser Avant de voter à vous envoyer des notifications ? » : touchez **Autoriser**.
+   (Refusé par erreur ? **Plus → Réglages → Autoriser les notifications**.)
+3. Widget : appui long sur un espace vide de l'écran d'accueil → **Widgets** → **Avant de voter** → **Ajouter**.
+
 ## Mettre à jour l'appli plus tard
 
 Installez simplement le nouvel APK **par-dessus** l'ancien (mêmes étapes 1 à 4) : rien n'est perdu.
