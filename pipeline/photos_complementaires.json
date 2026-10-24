@@ -1,0 +1,19 @@
+{
+  "_explication": "Photos ajoutées par l'appli quand 2027 et moi n'en fournit pas. Uniquement des fichiers de Wikimedia Commons sous licence libre (CC0, CC BY, CC BY-SA), vérifiés à la main. Si 2027 et moi publie sa propre photo, c'est la sienne qui est utilisée.",
+  "dubuisson": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/EmmanuelDubuisson.jpg/500px-EmmanuelDubuisson.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:EmmanuelDubuisson.jpg",
+    "auteur": "Cyanaxolotl2 (Wikimedia Commons)",
+    "licence": "CC0 1.0",
+    "legende": "Emmanuel Dubuisson (photo du 19/06/2026)",
+    "verifie_le": "2026-10-24"
+  },
+  "platret": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/GPlatret.jpg/500px-GPlatret.jpg",
+    "page": "https://commons.wikimedia.org/wiki/File:GPlatret.jpg",
+    "auteur": "Jérémy Viger",
+    "licence": "CC0 1.0",
+    "legende": "Gilles Platret, maire de Chalon-sur-Saône, en 2017",
+    "verifie_le": "2026-10-24"
+  }
+}

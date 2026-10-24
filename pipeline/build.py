@@ -89,6 +89,7 @@ def lire_source(source: Path) -> dict:
     }
     # Votes au Parlement : facultatifs (affichés sur la fiche candidat s'ils existent).
     data["votes"] = lire_json(source / "votes.json") if (source / "votes.json").exists() else {}
+    data["complements"] = photos_complementaires()
     for sous, cle in (("programmes", "programmes"), ("biographies", "biographies")):
         dossier = source / sous
         if dossier.is_dir():
@@ -124,7 +125,17 @@ def entrees_datees(liste) -> list:
     ]
 
 
-def candidat_app(c: dict, programme: dict | None, bio: dict | None, themes_connus: set) -> dict:
+COMPLEMENTS = Path(__file__).with_name("photos_complementaires.json")
+
+
+def photos_complementaires() -> dict:
+    """Photos libres ajoutées par l'appli quand la source n'en a pas (voir photos_complementaires.json)."""
+    if not COMPLEMENTS.exists():
+        return {}
+    return {k: v for k, v in lire_json(COMPLEMENTS).items() if not k.startswith("_")}
+
+
+def candidat_app(c: dict, programme: dict | None, bio: dict | None, themes_connus: set, complement: dict | None = None) -> dict:
     cid = c["id"]
     mesures, vus = [], set()
     for m in (programme or {}).get("mesures", []):
@@ -145,6 +156,9 @@ def candidat_app(c: dict, programme: dict | None, bio: dict | None, themes_connu
     prog = (programme or {}).get("programme")
     bio = bio or {}
     photo = bio.get("photo") if (bio.get("photo") or {}).get("url") else None
+    origine = "2027 et moi"
+    if photo is None and complement:
+        photo, origine = complement, "ajoutée par l'appli depuis Wikimedia Commons"
     presentation = bio.get("presentation") or {}
     return {
         "id": cid,
@@ -165,6 +179,7 @@ def candidat_app(c: dict, programme: dict | None, bio: dict | None, themes_connu
                 "auteur": photo.get("auteur") or "",
                 "licence": photo.get("licence") or "",
                 "legende": photo.get("legende") or "",
+                "origine": origine,
             }
             if photo
             else None
@@ -250,8 +265,9 @@ def moyenne(sondages: list, aujourd_hui: dt.date) -> dict:
 def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date) -> dict:
     """Assemble app-data.json (sans les photos, ajoutées ensuite)."""
     themes_connus: set = set()
+    complements = data.get("complements", {})
     candidats = [
-        candidat_app(c, data["programmes"].get(c["id"]), data["biographies"].get(c["id"]), themes_connus)
+        candidat_app(c, data["programmes"].get(c["id"]), data["biographies"].get(c["id"]), themes_connus, complements.get(c["id"]))
         for c in data["candidats"]["candidats"]
     ]
     candidats.sort(key=lambda c: c["tri"])

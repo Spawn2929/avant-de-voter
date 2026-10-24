@@ -213,6 +213,19 @@ def test_photo_injoignable_donne_les_initiales(tmp_path):
     assert rapport["avertissements"]
 
 
+def test_photo_complementaire_si_la_source_n_en_a_pas(tmp_path, monkeypatch):
+    monkeypatch.setattr(build, "photos_complementaires", lambda: {
+        "arthaud": {"url": "https://upload.wikimedia.org/a.jpg", "page": "https://commons/a", "auteur": "X", "licence": "CC0 1.0"},
+        "zemmour": {"url": "https://upload.wikimedia.org/autre.jpg", "page": "", "auteur": "Y", "licence": "CC0 1.0"},
+    })
+    _, _, app = lancer(tmp_path, source_min(tmp_path))
+    par_id = {c["id"]: c for c in app["candidats"]}
+    assert par_id["arthaud"]["photo"]["auteur"] == "X"
+    assert par_id["arthaud"]["photo"]["origine"] == "ajoutée par l'appli depuis Wikimedia Commons"
+    # la source a sa propre photo pour zemmour : c'est elle qui compte
+    assert par_id["zemmour"]["photo"]["auteur"] == "A" and par_id["zemmour"]["photo"]["origine"] == "2027 et moi"
+
+
 # ---------------------------------------------------------------- changements et publication
 
 
