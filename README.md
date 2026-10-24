@@ -27,8 +27,10 @@ le geste retour ferme l'écran ouvert, puis revient à Domaines.
 
 ### Candidats
 
-- Candidat sans photo publiée : sur sa fiche, **Ajouter une photo (sur ce téléphone)** pour en choisir une dans la
-  galerie. Elle reste sur ce téléphone, n'est jamais publiée ; « Changer » ou « Retirer » à tout moment.
+- Selma Labib, Benoît Mathieu, Antoine Mikolajczak et Manolo Mlekuz n'ont pas de photo libre chez 2027 et moi : leur
+  photo est fournie avec l'appli (« Photo fournie avec l'appli » sous la photo).
+- Candidat sans photo : sur sa fiche, **Ajouter une photo (sur ce téléphone)** pour en choisir une dans la galerie
+  (ou « En choisir une autre » à la place de la photo fournie). Elle reste sur ce téléphone ; « Changer » ou « Retirer ».
 - Grille des candidats : photo, parti, état du programme, étoile si vous le suivez. Touchez une carte pour la fiche.
 - **Comparer** : laissez le doigt sur une carte, touchez 1 à 3 autres cartes, puis « Comparer ». Le comparateur
   montre un domaine à la fois, les candidats l'un sous l'autre ; glissez pour changer de domaine.
@@ -38,7 +40,8 @@ le geste retour ferme l'écran ouvert, puis revient à Domaines.
 
 ### Sondages
 
-- Liste de tous les sondages, du plus récent au plus ancien ; filtre par institut.
+- Liste de tous les sondages, du plus récent au plus ancien ; filtre par institut en haut. Un institut choisi :
+  ses derniers scores (1re hypothèse) remplacent la moyenne en tête, et la liste ne garde que ses sondages.
 - En tête, **Moyenne des 30 derniers jours** (touchez pour la déplier) avec la règle de calcul ;
   le chiffre entre parenthèses dit dans combien de sondages la personne a été testée.
 - Touchez un sondage : toutes ses hypothèses, triées par score, et « Voir la notice officielle ».
@@ -58,8 +61,9 @@ le geste retour ferme l'écran ouvert, puis revient à Domaines.
 - **Mes priorités** : des mesures sans nom, dans un ordre tiré au hasard ; cochez celles qui vous parlent puis
   « Révéler » montre qui les propose. Rien n'est enregistré, aucun total par candidat.
 - **Qui propose quoi ?** : une mesure, quatre candidats, deviner l'auteur ; série de 10.
-- **De quel bord es-tu ?** : 10 questions de 2027 et moi (retraite à 62 ans, nucléaire, SMIC, Ukraine…), réponse oui,
-  non ou passer. Résultat : les candidats déclarés dont les positions sourcées sont les plus proches de vos réponses
+- **De quel bord es-tu ?** : 10 questions de 2027 et moi (retraite à 62 ans, nucléaire, SMIC, Ukraine…), tirées au
+  hasard à chaque partie parmi celles où au moins 4 candidats déclarés ont une position connue (celles de la partie
+  précédente passent en dernier) ; réponse oui, non ou passer. Résultat : les candidats déclarés dont les positions sourcées sont les plus proches de vos réponses
   (pourcentage d'accord, comparaison possible à partir de 5 questions en commun), votre place sur un axe gauche → extrême
   droite d'après les blocs de 2027 et moi, et pour chaque question la position de chaque candidat avec sa source.
   Ce n'est pas une recommandation de vote ; rien n'est enregistré.
@@ -84,6 +88,7 @@ sans rythme fixe : il est normal que la date ne change pas tous les jours. Tout 
 | Version | Contenu |
 |---|---|
 | 0.1 | Robot quotidien, onglets Domaines, Candidats et Plus (Réglages, Crédits), hors-ligne, thème |
+| 0.7 | Filtre par institut : derniers scores de l'institut en tête ; questions tirées au hasard à chaque partie ; noms de l'axe sur deux rangs ; photos de Labib, Mathieu, Mikolajczak et Mlekuz fournies avec l'appli |
 | 0.6 | « De quel bord es-tu ? » (10 questions, proximité, axe gauche-droite) ; photos ajoutées sur le téléphone |
 | 0.5.1 | Photos libres de Wikimedia Commons ajoutées quand 2027 et moi n'en a pas (Dubuisson, Platret), origine indiquée sous la photo |
 | 0.5 | Sondages (liste, fiches, courbe, moyenne 30 jours), comparateur, calendrier, Nouveautés, partage, Mes priorités, quiz, widget, candidats suivis et notifications, recherche, votes au Parlement |

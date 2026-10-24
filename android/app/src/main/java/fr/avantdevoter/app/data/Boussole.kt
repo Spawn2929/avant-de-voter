@@ -1,6 +1,7 @@
 package fr.avantdevoter.app.data
 
 import kotlin.math.abs
+import kotlin.random.Random
 
 // « De quel bord es-tu ? » : 10 questions de 2027 et moi, réponses oui / non, proximité avec chaque candidat déclaré.
 // Fonctions pures, testées. Les questions et les positions sont celles de la source, sans reformulation.
@@ -26,9 +27,15 @@ fun libellePositionCle(p: String): String = when (p) {
     else -> "Position non connue"
 }
 
+/** Sous ce nombre de positions connues, une question tirée au hasard aiderait peu à comparer. */
+const val POSITIONS_CONNUES_MIN = 4
+
 /**
- * Les questions posées : celles où le plus de candidats déclarés ont une position connue, à condition qu'elles
- * départagent (au moins un « pour » et un « contre », même nuancés), 2 au plus par domaine.
+ * Les questions posées, parmi celles qui départagent (au moins un « pour » et un « contre », même nuancés),
+ * 2 au plus par domaine.
+ * Sans [hasard] : celles où le plus de candidats déclarés ont une position connue.
+ * Avec [hasard] : tirage parmi celles qui ont au moins [POSITIONS_CONNUES_MIN] positions connues (s'il y en a
+ * assez), en prenant d'abord celles qui n'étaient pas dans [dejaPosees] : les questions changent à chaque partie.
  */
 fun choisirQuestions(
     questions: List<QuestionCle>,
@@ -36,11 +43,19 @@ fun choisirQuestions(
     declares: Set<String>,
     nombre: Int = 10,
     maxParDomaine: Int = 2,
+    hasard: Random? = null,
+    dejaPosees: Set<String> = emptySet(),
 ): List<QuestionCle> {
     fun valeurs(q: QuestionCle) = declares.mapNotNull { valeurPosition(positions[it]?.get(q.id)?.position) }
-    val candidates = questions
-        .filter { q -> valeurs(q).let { v -> v.any { it > 0 } && v.any { it < 0 } } }
-        .sortedWith(compareByDescending<QuestionCle> { valeurs(it).size }.thenBy { it.id })
+    val departagent = questions.filter { q -> valeurs(q).let { v -> v.any { it > 0 } && v.any { it < 0 } } }
+    val candidates = if (hasard == null) {
+        departagent.sortedWith(compareByDescending<QuestionCle> { valeurs(it).size }.thenBy { it.id })
+    } else {
+        val solides = departagent.filter { valeurs(it).size >= POSITIONS_CONNUES_MIN }
+        val vivier = if (solides.size >= nombre) solides else departagent
+        val (nouvelles, anciennes) = vivier.partition { it.id !in dejaPosees }
+        nouvelles.shuffled(hasard) + anciennes.shuffled(hasard)
+    }
     val choisies = mutableListOf<QuestionCle>()
     val parDomaine = mutableMapOf<String, Int>()
     for (q in candidates) {

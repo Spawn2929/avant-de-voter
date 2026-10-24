@@ -45,6 +45,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
 
+    /** Questions de la dernière partie de « De quel bord es-tu ? », gardées en mémoire seulement, pour en poser d'autres. */
+    var questionsPrecedentes: Set<String> = emptySet()
+
     private val _appliTropAncienne = MutableStateFlow(false)
     val appliTropAncienne: StateFlow<Boolean> = _appliTropAncienne.asStateFlow()
 

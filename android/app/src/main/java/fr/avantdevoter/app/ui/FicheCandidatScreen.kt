@@ -122,7 +122,7 @@ fun FicheCandidatScreen(
                             if (uri != null) vm.ajouterPhotoPerso(candidat.id, uri)
                         }
                         val image = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        if (photo != null) {
+                        if (vm.repository.photoPerso(candidat.id) != null) {
                             Text(
                                 "Photo ajoutée sur ce téléphone (non publiée)",
                                 style = MaterialTheme.typography.bodySmall,
@@ -133,6 +133,14 @@ fun FicheCandidatScreen(
                                 TextButton(onClick = { choisir.launch(image) }) { Text("Changer") }
                                 TextButton(onClick = { vm.retirerPhotoPerso(candidat.id) }) { Text("Retirer") }
                             }
+                        } else if (photo != null) {
+                            Text(
+                                "Photo fournie avec l'appli (2027 et moi n'en publie pas)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                            TextButton(onClick = { choisir.launch(image) }) { Text("En choisir une autre (sur ce téléphone)") }
                         } else {
                             Text(
                                 "Pas de photo libre publiée par 2027 et moi.",
@@ -393,7 +401,8 @@ fun PhotoPleinEcran(vm: MainViewModel, candidat: Candidat, onFermer: () -> Unit)
         }
         if (candidat.photo == null) {
             Text(
-                "${candidat.nom} — photo ajoutée sur ce téléphone (non publiée)",
+                "${candidat.nom} — " + if (vm.repository.photoPerso(candidat.id) != null) "photo ajoutée sur ce téléphone (non publiée)"
+                else "photo fournie avec l'appli",
                 color = Color.White,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.align(Alignment.BottomCenter).background(Color.Black.copy(alpha = 0.6f)).navigationBarsPadding().padding(16.dp),

@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -132,8 +133,31 @@ fun SondagesScreen(vm: MainViewModel, cat: Catalogue, onSondage: (String, String
         PullToRefreshBox(isRefreshing = enCours, onRefresh = { vm.mettreAJour() }, modifier = Modifier.fillMaxSize()) {
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 8.dp)) {
                 val m = cat.moyenne
+                val dernier = if (institut != null) liste.firstOrNull() else null
                 item {
-                    SectionRepliable(
+                    if (dernier != null) {
+                        // Un institut est choisi : ses derniers scores remplacent la moyenne de tous les instituts.
+                        val h = dernier.hypotheses.firstOrNull()
+                        Text("Dernier sondage $institut", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+                        Text(
+                            "${dernier.commanditaire} · ${terrain(dernier)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (h != null) {
+                            Text(
+                                h.label.ifBlank { "Hypothèse 1" } + if (dernier.hypotheses.size > 1) " (1re sur ${dernier.hypotheses.size})" else "",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                            )
+                            val rangs = classement(h)
+                            val max = rangs.maxOfOrNull { it.second } ?: 0.0
+                            rangs.forEach { (id, score) -> LigneScore(vm, cat, id, score, max) { onCandidat(id) } }
+                        }
+                        TextButton(onClick = { onSondage(dernier.id, institut) }) {
+                            Text(if (dernier.hypotheses.size > 1) "Voir les ${dernier.hypotheses.size} hypothèses" else "Voir le détail")
+                        }
+                    } else SectionRepliable(
                         "Moyenne des 30 derniers jours",
                         "moyenne",
                         ouverteAuDepart = moyenneOuverte,

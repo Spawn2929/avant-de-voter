@@ -47,6 +47,28 @@ class BoussoleTest {
     }
 
     @Test
+    fun tirage_au_hasard_evite_les_questions_de_la_partie_precedente() {
+        // 6 questions qui départagent, une par domaine, 4 positions connues chacune.
+        val qs = (1..6).map { QuestionCle("q$it", "d$it", "Q$it") }
+        val p = mapOf(
+            "a" to pos(*qs.map { it.id to "pour" }.toTypedArray()),
+            "b" to pos(*qs.map { it.id to "contre" }.toTypedArray()),
+            "c" to pos(*qs.map { it.id to "pour" }.toTypedArray()),
+            "d" to pos(*qs.map { it.id to "contre" }.toTypedArray()),
+        )
+        val declares = setOf("a", "b", "c", "d")
+        val premiere = choisirQuestions(qs, p, declares, nombre = 3, hasard = kotlin.random.Random(1)).map { it.id }.toSet()
+        assertEquals(3, premiere.size)
+        repeat(20) { graine ->
+            val suivante = choisirQuestions(qs, p, declares, nombre = 3, hasard = kotlin.random.Random(graine), dejaPosees = premiere)
+            assertTrue(suivante.none { it.id in premiere })
+        }
+        // Des tirages différents donnent des ordres différents.
+        val ordres = (0 until 10).map { g -> choisirQuestions(qs, p, declares, nombre = 6, hasard = kotlin.random.Random(g)).map { it.id } }.toSet()
+        assertTrue(ordres.size > 1)
+    }
+
+    @Test
     fun proximites_classees_et_minimum_de_questions_communes() {
         val cands = listOf(c("a", "gauche"), c("b", "droite"), c("d", "centre"))
         val p = mapOf(

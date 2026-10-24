@@ -34,15 +34,12 @@ Sans ce réglage, OnePlus peut retarder la vérification quotidienne quand l'app
 
 Ce n'est pas grave si vous l'oubliez : l'appli se met aussi à jour à l'ouverture.
 
-### 🙋 Photos des candidats qui n'en ont pas (facultatif)
+### Photos des candidats qui n'en ont pas
 
-Les photos de Selma Labib, Benoît Mathieu, Antoine Mikolajczak et Manolo Mlekuz ne sont pas libres de droits : elles ne
-sont pas publiées, chacun les ajoute sur son téléphone.
-
-1. Fred envoie à Céline par WhatsApp les 4 fichiers du dossier `C:\Developpement_Claude\Avant_de_voter\apk\photos`
-   (en « Photo » suffit) ; sur le téléphone, appui long sur chaque photo → **Enregistrer**.
-2. Dans l'appli : **Candidats** → touchez le candidat → **Ajouter une photo (sur ce téléphone)** → choisissez sa photo.
-3. Recommencez pour les 3 autres.
+Depuis la v0.7, les photos de Selma Labib, Benoît Mathieu, Antoine Mikolajczak et Manolo Mlekuz sont fournies avec
+l'appli (`android/app/src/main/assets/photos_integrees/`, réduites à 400 px) : rien à faire sur les téléphones.
+Ces photos ne sont pas sous licence libre : à retirer de ce dossier si un ayant droit le demande.
+Une photo ajoutée à la main sur un téléphone reste prioritaire sur la photo fournie.
 
 ### 🙋 Notifications et widget (facultatif)
 

@@ -64,9 +64,29 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
         return dossierPerso.listFiles()?.filter { it.name.startsWith("$id-") }?.maxByOrNull { it.name }
     }
 
-    /** Photo affichée : celle de la source (ou du complément Commons), sinon celle ajoutée sur ce téléphone. */
+    /**
+     * Photos livrées dans l'APK (assets/photos_integrees/<id>.jpg) pour des candidats sans photo libre publiée.
+     * Copiées dans les fichiers de l'appli au démarrage : quelques dizaines de Ko, recopiées si elles changent.
+     */
+    private val dossierIntegrees: File = File(context.filesDir, "photos_integrees").also { dossier ->
+        runCatching {
+            dossier.mkdirs()
+            context.assets.list("photos_integrees").orEmpty().forEach { nom ->
+                val octets = context.assets.open("photos_integrees/$nom").use { it.readBytes() }
+                val cible = File(dossier, nom)
+                if (!cible.exists() || cible.length() != octets.size.toLong()) cible.writeBytes(octets)
+            }
+        }
+    }
+
+    fun photoIntegree(id: String): File? = File(dossierIntegrees, "$id.jpg").takeIf { it.exists() }
+
+    /**
+     * Photo affichée : celle de la source (ou du complément Commons), sinon celle ajoutée sur ce téléphone,
+     * sinon celle livrée avec l'appli.
+     */
     fun photo(c: Candidat): File? =
-        c.photo?.let { File(context.filesDir, it.fichier) }?.takeIf { it.exists() } ?: photoPerso(c.id)
+        c.photo?.let { File(context.filesDir, it.fichier) }?.takeIf { it.exists() } ?: photoPerso(c.id) ?: photoIntegree(c.id)
 
     /** Copie la photo choisie, réduite à 300 px de large, sous un nouveau nom (l'ancienne est effacée). */
     suspend fun ajouterPhotoPerso(id: String, uri: Uri): Boolean = withContext(Dispatchers.IO) {

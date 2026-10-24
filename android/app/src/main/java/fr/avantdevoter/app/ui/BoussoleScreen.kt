@@ -23,8 +23,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -56,6 +58,7 @@ import fr.avantdevoter.app.data.positionBloc
 import fr.avantdevoter.app.data.positionUtilisateur
 import fr.avantdevoter.app.data.proximites
 import fr.avantdevoter.app.data.valeurPosition
+import kotlin.random.Random
 
 private const val AVERTISSEMENT =
     "Ce n'est pas une recommandation de vote. Le résultat ne porte que sur 10 questions et sur les seules positions " +
@@ -74,11 +77,27 @@ private const val REGLE =
 @Composable
 fun BoussoleScreen(vm: MainViewModel, cat: Catalogue, onRetour: () -> Unit, onCandidat: (String) -> Unit) {
     val declares = remember(cat) { cat.candidats.filter { it.statut == "declare" } }
-    val questions = remember(cat) { choisirQuestions(cat.questions, cat.positions, declares.map { it.id }.toSet()) }
+    // Nouveau tirage à chaque ouverture et à chaque « Recommencer » ; gardé en cas de rotation.
+    var tirage by rememberSaveable { mutableLongStateOf(System.nanoTime()) }
+    val questions = remember(cat, tirage) {
+        choisirQuestions(cat.questions, cat.positions, declares.map { it.id }.toSet(), hasard = Random(tirage), dejaPosees = vm.questionsPrecedentes)
+    }
     var etape by rememberSaveable { mutableIntStateOf(-1) } // -1 : présentation ; 0..9 : question ; 10 : résultat
     // Réponses gardées en cas de rotation, sous la forme « q05=OUI ».
     var reponsesTexte by rememberSaveable { mutableStateOf(listOf<String>()) }
     val reponses = reponsesTexte.associate { it.substringBefore('=') to Reponse.valueOf(it.substringAfter('=')) }
+
+    // Dès qu'une partie commence, ses questions seront évitées au tirage suivant.
+    val partieCommencee = etape >= 0
+    LaunchedEffect(questions, partieCommencee) {
+        if (partieCommencee) vm.questionsPrecedentes = questions.map { it.id }.toSet()
+    }
+
+    fun nouvellePartie() {
+        tirage = System.nanoTime()
+        reponsesTexte = emptyList()
+        etape = 0
+    }
 
     fun repondre(q: QuestionCle, r: Reponse) {
         reponsesTexte = reponsesTexte.filterNot { it.startsWith("${q.id}=") } + "${q.id}=${r.name}"
@@ -90,8 +109,8 @@ fun BoussoleScreen(vm: MainViewModel, cat: Catalogue, onRetour: () -> Unit, onCa
             questions.isEmpty() -> item { EtatVide("Les questions de 2027 et moi ne sont pas encore disponibles : mettez les données à jour.") }
             etape < 0 -> item {
                 Text(
-                    "${questions.size} questions posées aux candidats par 2027 et moi, choisies parmi celles où le plus de " +
-                        "candidats déclarés ont une position connue. Répondez par oui ou par non (ou passez) ; à la fin, " +
+                    "${questions.size} questions posées aux candidats par 2027 et moi, tirées au hasard parmi celles où " +
+                        "plusieurs candidats déclarés ont une position connue : elles changent à chaque partie. Répondez par oui ou par non (ou passez) ; à la fin, " +
                         "l'appli indique les candidats dont les positions sont les plus proches de vos réponses, et votre place " +
                         "sur un axe de la gauche à l'extrême droite.",
                     style = MaterialTheme.typography.bodyLarge,
@@ -130,7 +149,7 @@ fun BoussoleScreen(vm: MainViewModel, cat: Catalogue, onRetour: () -> Unit, onCa
                     )
                 }
             }
-            else -> resultat(vm, cat, questions, reponses, declares, onCandidat) { reponsesTexte = emptyList(); etape = 0 }
+            else -> resultat(vm, cat, questions, reponses, declares, onCandidat) { nouvellePartie() }
         }
     }
 }
@@ -301,11 +320,15 @@ private fun Axe(liste: List<Proximite>, vous: Double?) {
         fun x(v: Double) = (marge + (v + 2) / 4 * largeur).toFloat()
         val yLigne = 110.dp.toPx()
         drawLine(ligne, Offset(marge, yLigne), Offset(size.width - marge, yLigne), 3f)
-        GRADUATIONS.forEach { (v, nom) ->
+        // Noms des blocs sur deux rangs en alternance, pour qu'ils ne se chevauchent pas sur un petit écran.
+        val hauteurNom = mesure.measure("Ég", style).size.height.toFloat()
+        GRADUATIONS.forEachIndexed { i, (v, nom) ->
             drawLine(ligne, Offset(x(v), yLigne - 8f), Offset(x(v), yLigne + 8f), 3f)
             val t = mesure.measure(nom, style)
+            val haut = yLigne + 6.dp.toPx() + if (i % 2 == 1) hauteurNom + 2.dp.toPx() else 0f
+            if (i % 2 == 1) drawLine(ligne.copy(alpha = 0.5f), Offset(x(v), yLigne + 8f), Offset(x(v), haut), 1f)
             val gauche = (x(v) - t.size.width / 2f).coerceIn(0f, size.width - t.size.width)
-            drawText(t, topLeft = Offset(gauche, yLigne + 6.dp.toPx()))
+            drawText(t, topLeft = Offset(gauche, haut))
         }
         // Un point par candidat comparable, empilés au-dessus de leur bloc ; plus foncé = plus proche.
         places.groupBy { it.first }.forEach { (v, groupe) ->
@@ -315,7 +338,7 @@ private fun Axe(liste: List<Proximite>, vous: Double?) {
         }
         if (vous != null) {
             val cx = x(vous)
-            val pointe = yLigne + 26.dp.toPx() // sous les noms des blocs
+            val pointe = yLigne + 12.dp.toPx() + 2 * hauteurNom // sous les deux rangs de noms des blocs
             val haut = pointe + 18.dp.toPx()
             val triangle = Path().apply {
                 moveTo(cx, pointe); lineTo(cx - 9.dp.toPx(), haut); lineTo(cx + 9.dp.toPx(), haut); close()
