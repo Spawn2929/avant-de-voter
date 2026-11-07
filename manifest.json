@@ -1,10 +1,10 @@
 {
   "format": 1,
   "source_mise_a_jour": "2026-10-28",
-  "publie_le": "2026-10-29T12:22:22+01:00",
+  "publie_le": "2026-11-07T12:35:25+01:00",
   "fichiers": {
     "app-data.json": {
-      "sha256": "b80cdb6b0a12a4d6e074d05a89f9daa39b584943abd0bbd50fd5ab3c6cc356df",
+      "sha256": "d47c67e1fe227ced078d954c09653eba409eb5c0220426044b81b301f3bf0aff",
       "taille": 893775
     },
     "changes.json": {
