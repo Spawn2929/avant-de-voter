@@ -40,13 +40,18 @@ le geste retour ferme l'écran ouvert, puis revient à Domaines.
 
 ### Sondages
 
-- Liste de tous les sondages, du plus récent au plus ancien ; filtre par institut en haut. Un institut choisi :
-  ses derniers scores (1re hypothèse) remplacent la moyenne en tête, et la liste ne garde que ses sondages.
-- En tête, **Moyenne des 30 derniers jours** (touchez pour la déplier) avec la règle de calcul ;
-  le chiffre entre parenthèses dit dans combien de sondages la personne a été testée.
-- Touchez un sondage : toutes ses hypothèses, triées par score, et « Voir la notice officielle ».
+- En haut, **1er tour | 2nd tour**, puis le filtre par institut.
+- **1er tour** : en tête, **Moyenne des 30 derniers jours** (touchez pour la déplier) avec la règle de calcul ; le
+  chiffre entre parenthèses dit dans combien de sondages la personne a été testée. Un institut choisi : ses derniers
+  scores (1re hypothèse) remplacent la moyenne, et la liste ne garde que ses sondages.
+- **2nd tour** : un bloc par duel (« Philippe – Le Pen »…), le plus récemment testé d'abord, avec son dernier résultat ;
+  touchez le duel pour voir tous ses résultats, institut par institut.
+- Touchez un sondage : toutes ses hypothèses (ou tous ses duels), triées par score, et le lien vers la notice.
   Glissez à gauche ou à droite pour passer au sondage suivant.
-- Touchez un nom : ses scores dans tous les sondages, en courbe et en liste.
+- Touchez un nom : ses scores dans tous les sondages du 1er tour, en courbe et en liste.
+- **Sources** : 2027 et moi d'abord. Un sondage qu'il n'a pas encore repris, et tout le 2nd tour, viennent de la page
+  Wikipédia « Liste de sondages sur l'élection présidentielle française de 2027 » (CC BY-SA 4.0), marqués « via
+  Wikipédia », avec le lien vers la notice ou le rapport de l'institut. Ils comptent dans la moyenne.
 
 ### Nouveautés
 
@@ -78,16 +83,17 @@ du 1er tour et les trois premiers de la moyenne des sondages (triés par score) 
 
 ## Mise à jour des données
 
-Chaque matin à 6 h, un robot GitHub lit les données de 2027 et moi, les contrôle et les publie.
+Chaque matin à 6 h, un robot GitHub lit les données de 2027 et moi et la page Wikipédia des sondages, les contrôle et les publie.
 L'appli vérifie après 7 h (et à l'ouverture si la dernière vérification a plus de 24 h, ou juste après une mise à jour
 de l'appli) ; elle ne télécharge que si quelque chose a changé. 2027 et moi met ses données à jour à la main,
-sans rythme fixe : il est normal que la date ne change pas tous les jours. Tout reste consultable sans réseau.
+sans rythme fixe : il est normal que la date ne change pas tous les jours ; les sondages récents arrivent par Wikipédia. Si la page Wikipédia est illisible un matin, le robot garde les sondages Wikipédia de la veille. Tout reste consultable sans réseau.
 
 ## Versions
 
 | Version | Contenu |
 |---|---|
 | 0.1 | Robot quotidien, onglets Domaines, Candidats et Plus (Réglages, Crédits), hors-ligne, thème |
+| 0.8 | Sondages complétés par Wikipédia (sondages récents que 2027 et moi n'a pas encore repris) ; 2nd tour : duels, derniers résultats et historique |
 | 0.7 | Filtre par institut : derniers scores de l'institut en tête ; questions tirées au hasard à chaque partie ; noms de l'axe sur deux rangs ; photos de Labib, Mathieu, Mikolajczak et Mlekuz fournies avec l'appli |
 | 0.6 | « De quel bord es-tu ? » (10 questions, proximité, axe gauche-droite) ; photos ajoutées sur le téléphone |
 | 0.5.1 | Photos libres de Wikimedia Commons ajoutées quand 2027 et moi n'en a pas (Dubuisson, Platret), origine indiquée sous la photo |

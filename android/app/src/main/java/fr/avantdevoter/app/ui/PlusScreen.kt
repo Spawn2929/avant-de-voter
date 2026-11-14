@@ -269,6 +269,20 @@ fun CreditsScreen(vm: MainViewModel, catalogue: Catalogue, onRetour: () -> Unit)
             TextButton(onClick = { ouvrir("https://github.com/2027etmoi/2027etmoi") }) { Text("Données ouvertes de 2027 et moi (GitHub)") }
             TextButton(onClick = { ouvrir("https://www.etalab.gouv.fr/licence-ouverte-open-licence/") }) { Text("Licence Ouverte 2.0") }
         }
+        catalogue.sourcesSondages.forEach { src ->
+            item {
+                HorizontalDivider(Modifier.padding(top = 8.dp))
+                TitreSection("Sondages : ${src.nom}")
+                Text(
+                    "Les sondages que 2027 et moi n'a pas encore repris, et tous ceux du 2nd tour, viennent de la page " +
+                        "« ${src.titre} » de ${src.nom}, sous licence ${src.licence}. Les chiffres sont repris tels quels, " +
+                        "avec le lien vers la notice ou le rapport de l'institut que cite la page ; une ligne incohérente est écartée.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                TextButton(onClick = { ouvrir(src.url) }) { Text("Page ${src.nom} des sondages") }
+                TextButton(onClick = { ouvrir("https://creativecommons.org/licenses/by-sa/4.0/deed.fr") }) { Text(src.licence) }
+            }
+        }
         item {
             HorizontalDivider(Modifier.padding(top = 8.dp))
             TitreSection("Photos")

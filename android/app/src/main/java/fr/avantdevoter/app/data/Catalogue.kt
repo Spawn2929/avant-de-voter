@@ -8,7 +8,7 @@ data class Catalogue(
     val source: SourceDonnees?,
     val themes: List<Theme>,
     val candidats: List<Candidat>, // ordre alphabétique par nom de famille
-    val sondages: List<Sondage>, // du plus récent au plus ancien
+    val sondages: List<Sondage>, // 1er tour, du plus récent au plus ancien
     val nomsHorsListe: Map<String, String>,
     val moyenne: Moyenne?,
     val calendrier: List<Etape>,
@@ -17,6 +17,8 @@ data class Catalogue(
     val mandats: Map<String, List<Mandat>> = emptyMap(),
     val questions: List<QuestionCle> = emptyList(),
     val positions: Map<String, Map<String, PositionCle>> = emptyMap(),
+    val secondTour: List<Sondage> = emptyList(), // du plus récent au plus ancien
+    val sourcesSondages: List<SourceSondages> = emptyList(),
 ) {
     val parId: Map<String, Candidat> = candidats.associateBy { it.id }
 

@@ -32,6 +32,10 @@ data class AppData(
     val themes: List<Theme>,
     val candidats: List<Candidat>,
     val sondages: List<Sondage> = emptyList(),
+    /** 2nd tour : un sondage par institut et dates, une hypothèse par duel (« Philippe – Le Pen »). */
+    @SerialName("second_tour") val secondTour: List<Sondage> = emptyList(),
+    /** Sources des sondages autres que 2027 et moi (Wikipédia), avec leur licence. */
+    @SerialName("sources_sondages") val sourcesSondages: List<SourceSondages> = emptyList(),
     @SerialName("noms_hors_liste") val nomsHorsListe: Map<String, String> = emptyMap(),
     val moyenne: Moyenne? = null,
     val calendrier: List<Etape> = emptyList(),
@@ -152,8 +156,16 @@ data class Sondage(
     @SerialName("terrain_fin") val terrainFin: String,
     val echantillon: Int? = null,
     val source: Ref? = null,
+    /** « 2027 et moi », ou « Wikipédia » quand 2027 et moi n'a pas (encore) repris ce sondage. */
+    val origine: String = ORIGINE_2027,
     val hypotheses: List<Hypothese> = emptyList(),
 )
+
+const val ORIGINE_2027 = "2027 et moi"
+const val ORIGINE_WIKIPEDIA = "Wikipédia"
+
+@Serializable
+data class SourceSondages(val nom: String, val titre: String = "", val url: String = "", val licence: String = "")
 
 @Serializable
 data class Hypothese(val label: String = "", val scores: Map<String, Double> = emptyMap())

@@ -30,6 +30,19 @@ fun courbe(sondages: List<Sondage>, id: String): List<PointSondage> =
 
 fun instituts(sondages: List<Sondage>): List<String> = sondages.map { it.institut }.distinct().sorted()
 
+/** « Elabe · BFMTV », ou « Elabe » quand le commanditaire n'est pas connu (sondages repris de Wikipédia). */
+fun titreSondage(s: Sondage): String = if (s.commanditaire.isBlank()) s.institut else "${s.institut} · ${s.commanditaire}"
+
+/** Un duel du 2nd tour et ses résultats, du plus récent au plus ancien. */
+data class Duel(val label: String, val resultats: List<Pair<Sondage, Hypothese>>)
+
+/** Duels testés, le plus récemment testé en premier ; [sondages] du plus récent au plus ancien. */
+fun duels(sondages: List<Sondage>): List<Duel> =
+    sondages.flatMap { s -> s.hypotheses.map { h -> h.label to (s to h) } }
+        .groupBy({ it.first }, { it.second })
+        .map { (label, r) -> Duel(label, r.sortedByDescending { it.first.terrainFin }) }
+        .sortedWith(compareByDescending<Duel> { it.resultats.first().first.terrainFin }.thenByDescending { it.resultats.size }.thenBy { it.label })
+
 /** « Terrain du 17 au 19/10/2026 ». */
 fun terrain(s: Sondage): String =
     if (s.terrainDebut.isBlank() || s.terrainDebut == s.terrainFin) "Terrain le ${dateCourte(s.terrainFin)}"

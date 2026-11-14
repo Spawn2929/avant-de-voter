@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fr.avantdevoter.app.data.Candidat
 import fr.avantdevoter.app.data.Catalogue
+import fr.avantdevoter.app.data.titreSondage
 import fr.avantdevoter.app.data.Changement
 import fr.avantdevoter.app.data.Reglages
 import fr.avantdevoter.app.data.dateCourte
@@ -109,7 +110,7 @@ fun NouveautesScreen(
 @Composable
 private fun LigneChangement(vm: MainViewModel, cat: Catalogue, ch: Changement, onClick: () -> Unit) {
     val candidat: Candidat? = ch.candidat?.let { cat.parId[it] }
-    val sondage = ch.sondage?.let { id -> cat.sondages.firstOrNull { it.id == id } }
+    val sondage = ch.sondage?.let { id -> (cat.sondages + cat.secondTour).firstOrNull { it.id == id } }
     Row(
         Modifier
             .fillMaxWidth()
@@ -123,7 +124,7 @@ private fun LigneChangement(vm: MainViewModel, cat: Catalogue, ch: Changement, o
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                candidat?.nom ?: sondage?.let { "${it.institut} · ${it.commanditaire}" } ?: ch.candidat.orEmpty(),
+                candidat?.nom ?: sondage?.let { titreSondage(it) } ?: ch.candidat.orEmpty(),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )

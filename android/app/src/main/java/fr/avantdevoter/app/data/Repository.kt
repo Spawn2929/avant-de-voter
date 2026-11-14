@@ -132,6 +132,8 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
             calendrier = meta["calendrier"]?.let { json.decodeFromString(ListSerializer(Etape.serializer()), it) }.orEmpty(),
             changements = changements.map { json.decodeFromString(Changement.serializer(), it.json) },
             scrutins = meta["scrutins"]?.let { json.decodeFromString(ListSerializer(Scrutin.serializer()), it) }.orEmpty(),
+            secondTour = meta["second_tour"]?.let { json.decodeFromString(ListSerializer(Sondage.serializer()), it) }.orEmpty(),
+            sourcesSondages = meta["sources_sondages"]?.let { json.decodeFromString(ListSerializer(SourceSondages.serializer()), it) }.orEmpty(),
             questions = meta["questions"]?.let { json.decodeFromString(ListSerializer(QuestionCle.serializer()), it) }.orEmpty(),
             positions = meta["positions"]?.let {
                 json.decodeFromString(MapSerializer(String.serializer(), MapSerializer(String.serializer(), PositionCle.serializer())), it)
@@ -269,6 +271,8 @@ class Repository(private val context: Context, private val db: AppDatabase, val 
             app.moyenne?.let { add(MetaRow("moyenne", json.encodeToString(Moyenne.serializer(), it))) }
             add(MetaRow("scrutins", json.encodeToString(ListSerializer(Scrutin.serializer()), app.scrutins)))
             add(MetaRow("questions", json.encodeToString(ListSerializer(QuestionCle.serializer()), app.questions)))
+            add(MetaRow("second_tour", json.encodeToString(ListSerializer(Sondage.serializer()), app.secondTour)))
+            add(MetaRow("sources_sondages", json.encodeToString(ListSerializer(SourceSondages.serializer()), app.sourcesSondages)))
             add(MetaRow("positions", json.encodeToString(MapSerializer(String.serializer(), MapSerializer(String.serializer(), PositionCle.serializer())), app.positions)))
             add(MetaRow("mandats", json.encodeToString(MapSerializer(String.serializer(), ListSerializer(Mandat.serializer())), app.mandats)))
         }
