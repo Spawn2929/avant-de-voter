@@ -1,15 +1,15 @@
 {
   "format": 1,
   "source_mise_a_jour": "2026-11-09",
-  "publie_le": "2026-11-14T12:58:29+01:00",
+  "publie_le": "2026-11-14T23:46:22+01:00",
   "fichiers": {
     "app-data.json": {
-      "sha256": "d4073e5e019a5e62e9a8dab4714cc4a4ac4a1892e4c01877ae8f31285aaf7368",
-      "taille": 919655
+      "sha256": "534b857744fd5c1d721a87fcaa9b2c108b715ef2e18a0d8bd93c8642c03b8738",
+      "taille": 945377
     },
     "changes.json": {
-      "sha256": "e53719386a70e8faa3ece8e56ae6e72a4d904e403d77f32079742fb420e9d92a",
-      "taille": 7977
+      "sha256": "e574b2256667f13547dab008c25dc3cd71ad19ade84104ce68dd8e5db0460f26",
+      "taille": 11592
     }
   },
   "photos": 51
