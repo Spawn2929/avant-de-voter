@@ -10,6 +10,9 @@ de sortie, à partir de la version publiée la veille :
 - changes.json  : changements des 90 derniers jours ;
 - photos/       : photos recopiées depuis Wikimedia Commons, 300 px.
 
+Les sondages viennent de 2027 et moi, complétés par la page Wikipédia des sondages 2027 (voir wikipedia_sondages.py) :
+un sondage présent dans les deux garde la version de 2027 et moi ; le 2nd tour ne vient que de Wikipédia.
+
 Le texte des mesures est recopié tel quel : rien n'est résumé ni reformulé.
 Code de sortie : 0 = publié ou rien à publier, 1 = données invalides (rien n'est écrit).
 """
@@ -28,6 +31,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from zoneinfo import ZoneInfo
+
+import wikipedia_sondages as wikipedia
 
 PARIS = ZoneInfo("Europe/Paris")
 FORMAT = 1  # version du format des fichiers publiés ; l'appli refuse un format plus récent qu'elle
@@ -55,8 +60,11 @@ THEMES = [
 NATURES = {"programme", "declaration", "presse"}
 ETATS_PROGRAMME = {"complet", "partiel", "aucun"}
 STATUTS = {"declare", "pressenti", "renonce"}
+ORIGINE_2027 = "2027 et moi"
+# En dessous de cette part des sondages Wikipédia de la veille, la page a sans doute changé de forme : on garde la veille.
+WIKIPEDIA_PART_MIN = 0.5
 REGLE_MOYENNE = (
-    "Moyenne des sondages dont la fin de terrain date de moins de 30 jours. "
+    "Moyenne des sondages du 1er tour (2027 et moi et Wikipédia) dont la fin de terrain date de moins de 30 jours. "
     "Quand un sondage teste plusieurs hypothèses, on retient la moyenne des hypothèses où le candidat figure. "
     "Puis moyenne simple entre sondages, arrondie au dixième."
 )
@@ -224,6 +232,7 @@ def sondage_app(s: dict) -> dict:
         "terrain_fin": s["terrain_fin"],
         "echantillon": s.get("echantillon"),
         "source": source_courte(s.get("source")),
+        "origine": ORIGINE_2027,
         "hypotheses": [
             {"label": h.get("label") or "", "scores": {k: float(v) for k, v in h["scores"].items() if v is not None}}
             for h in s.get("hypotheses") or []
@@ -238,6 +247,36 @@ def fusion_sondages(nouveaux: list, anciens: list) -> list:
     for s in nouveaux:
         par_id[s["id"]] = s
     return sorted(par_id.values(), key=lambda s: (s["terrain_fin"], s["institut"], s["id"]), reverse=True)
+
+
+def sans_doublons(sondages: list) -> list:
+    """Retire un sondage Wikipédia déjà saisi par 2027 et moi (même famille d'institut, fin de terrain à un jour près).
+    Les instituts de Wikipédia prennent le nom employé par 2027 et moi (« Harris » → « Toluna Harris Interactive »)."""
+    noms: dict[str, str] = {}
+    fins: dict[str, list[dt.date]] = {}
+    for s in sondages:  # du plus récent au plus ancien : le nom le plus récent l'emporte
+        if s.get("origine", ORIGINE_2027) == ORIGINE_2027:
+            fam = wikipedia.famille(s["institut"])
+            noms.setdefault(fam, s["institut"])
+            fins.setdefault(fam, []).append(dt.date.fromisoformat(s["terrain_fin"]))
+    sortie = []
+    for s in sondages:
+        if s.get("origine", ORIGINE_2027) != ORIGINE_2027:
+            fam = wikipedia.famille(s["institut"])
+            fin = dt.date.fromisoformat(s["terrain_fin"])
+            if any(abs((fin - f).days) <= 1 for f in fins.get(fam, [])):
+                continue
+            s = {**s, "institut": noms.get(fam, s["institut"])}
+        sortie.append(s)
+    return sortie
+
+
+def noms_instituts(sondages: list, reference: list) -> list:
+    """Même nom d'institut que dans le 1er tour (« Harris » → « Toluna Harris Interactive »)."""
+    noms: dict[str, str] = {}
+    for s in reference:
+        noms.setdefault(wikipedia.famille(s["institut"]), s["institut"])
+    return [{**s, "institut": noms.get(wikipedia.famille(s["institut"]), s["institut"])} for s in sondages]
 
 
 def moyenne(sondages: list, aujourd_hui: dt.date) -> dict:
@@ -264,8 +303,10 @@ def moyenne(sondages: list, aujourd_hui: dt.date) -> dict:
     }
 
 
-def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date) -> dict:
-    """Assemble app-data.json (sans les photos, ajoutées ensuite)."""
+def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date, wiki: tuple | None = None) -> dict:
+    """Assemble app-data.json (sans les photos, ajoutées ensuite).
+    wiki = (1er tour, 2nd tour, nouveaux noms) lus sur Wikipédia ; None si la page n'a pas pu être lue :
+    on garde alors les sondages Wikipédia de la veille."""
     themes_connus: set = set()
     complements = data.get("complements", {})
     candidats = [
@@ -280,11 +321,21 @@ def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date) -> dict
         themes.append({"id": t, "label": t.replace("_", " ").capitalize()})
 
     nouveaux = [sondage_app(s) for s in data["sondages"]["sondages"]]
-    sondages = fusion_sondages(nouveaux, (precedent or {}).get("sondages", []))
+    anciens = (precedent or {}).get("sondages", [])
+    if wiki is not None:
+        # Les sondages Wikipédia du jour remplacent ceux de la veille (une ligne corrigée ne reste pas en double).
+        anciens = [s for s in anciens if s.get("origine", ORIGINE_2027) == ORIGINE_2027]
+        nouveaux += wiki[0]
+    sondages = sans_doublons(fusion_sondages(nouveaux, anciens))
+    second_tour = fusion_sondages(wiki[1], []) if wiki is not None else list((precedent or {}).get("second_tour") or [])
+    second_tour = noms_instituts(second_tour, sondages)
 
     # Noms cités dans un sondage sans fiche candidat : on garde aussi ceux des sondages archivés.
     noms_hors_liste = dict((precedent or {}).get("noms_hors_liste") or {})
     noms_hors_liste.update(data["sondages"].get("noms_hors_liste") or {})
+    if wiki is not None:
+        noms_hors_liste.update({k: v for k, v in wiki[2].items() if k not in noms_hors_liste})
+    wiki_utilise = any(s.get("origine") == wikipedia.ORIGINE for s in sondages) or bool(second_tour)
 
     votes = data.get("votes") or {}
     scrutins = sorted(
@@ -344,6 +395,12 @@ def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date) -> dict
         "themes": themes,
         "candidats": candidats,
         "sondages": sondages,
+        "second_tour": second_tour,
+        "sources_sondages": (
+            [{"nom": wikipedia.ORIGINE, "titre": wikipedia.PAGE, "url": wikipedia.PAGE_URL, "licence": wikipedia.LICENCE}]
+            if wiki_utilise
+            else []
+        ),
         "noms_hors_liste": dict(sorted(noms_hors_liste.items())),
         "moyenne": moyenne(sondages, aujourd_hui),
         "calendrier": [
@@ -488,10 +545,15 @@ def changements(precedent: dict | None, app: dict, jour: str) -> list:
                         "texte": m["texte"],
                     }
                 )
-    deja = {s["id"] for s in precedent.get("sondages", [])}
+    deja = {s["id"] for s in precedent.get("sondages", [])} | {s["id"] for s in precedent.get("second_tour") or []}
     for s in app["sondages"]:
         if s["id"] not in deja:
             out.append({"date": jour, "type": "nouveau_sondage", "sondage": s["id"], "libelle": f"Nouveau sondage {s['institut']}"})
+    for s in app["second_tour"]:
+        if s["id"] not in deja:
+            out.append(
+                {"date": jour, "type": "nouveau_sondage", "sondage": s["id"], "libelle": f"Nouveau sondage du 2nd tour {s['institut']}"}
+            )
     return out
 
 
@@ -533,7 +595,7 @@ def valider(app: dict, changes: dict):
             exige(m["nature"] in NATURES, f"{ou} : nature inconnue {m['nature']!r}")
             exige(bool(m["texte"].strip()), f"{ou} : mesure vide")
             exige(bool(m["source"] and m["source"]["url"].startswith("http")), f"{ou} : mesure sans source ({m['texte'][:40]})")
-    for s in app["sondages"]:
+    for s in app["sondages"] + app["second_tour"]:
         ou = f"sondage {s['institut']} {s['terrain_fin']}"
         try:
             dt.date.fromisoformat(s["terrain_fin"])
@@ -542,6 +604,9 @@ def valider(app: dict, changes: dict):
         exige(bool(s["hypotheses"]), f"{ou} : aucune hypothèse")
         for h in s["hypotheses"]:
             exige(all(0 <= v <= 100 for v in h["scores"].values()), f"{ou} : score hors de 0-100")
+    for s in app["second_tour"]:
+        exige(all(len(h["scores"]) == 2 for h in s["hypotheses"]), f"2nd tour {s['institut']} {s['terrain_fin']} : duel incomplet")
+        exige(bool(s.get("source") and s["source"]["url"].startswith("http")), f"2nd tour {s['institut']} : sondage sans source")
     for v in app.get("scrutins", []):
         # Une position inconnue (nouvelle dans la source) s'affichera telle quelle : on vérifie seulement le format.
         exige(all(isinstance(p, str) for p in v["votes"].values()), f"scrutin {v['id']} : position de vote illisible")
@@ -565,8 +630,32 @@ def empreinte(contenu: bytes) -> str:
     return hashlib.sha256(contenu).hexdigest()
 
 
-def executer(source: Path, dossier_precedent: Path | None, out: Path, maintenant: dt.datetime, telecharge=telecharger) -> dict:
-    """Fabrique les fichiers dans out/. Renvoie un compte rendu ; lève Invalide si la source est inutilisable."""
+def lire_wikipedia(html: str | None, data: dict, precedent: dict | None, avertissements: list) -> tuple | None:
+    """Sondages de la page Wikipédia, ou None (page absente, illisible ou soudain bien plus courte que la veille)."""
+    if html is None:
+        return None
+    candidats = {c["id"]: c["nom"] for c in data["candidats"]["candidats"]}
+    hors_liste = {**((precedent or {}).get("noms_hors_liste") or {}), **(data["sondages"].get("noms_hors_liste") or {})}
+    try:
+        premier, second, nouveaux_noms, ecartees = wikipedia.sondages_wikipedia(html, candidats, hors_liste)
+    except Exception as e:  # forme de page inattendue : on n'arrête pas le robot pour autant
+        avertissements.append(f"Wikipédia illisible, sondages de la veille gardés : {type(e).__name__}: {e}")
+        return None
+    avertissements.extend(f"Wikipédia, ligne écartée : {e}" for e in ecartees)
+    veille = sum(1 for s in (precedent or {}).get("sondages", []) if s.get("origine") == wikipedia.ORIGINE)
+    veille += len((precedent or {}).get("second_tour") or [])
+    if len(premier) + len(second) < WIKIPEDIA_PART_MIN * veille:
+        avertissements.append(
+            f"Wikipédia : {len(premier) + len(second)} sondages lus contre {veille} la veille, sondages de la veille gardés"
+        )
+        return None
+    return premier, second, nouveaux_noms
+
+
+def executer(source: Path, dossier_precedent: Path | None, out: Path, maintenant: dt.datetime, telecharge=telecharger,
+             page_wikipedia: str | None = None) -> dict:
+    """Fabrique les fichiers dans out/. Renvoie un compte rendu ; lève Invalide si la source est inutilisable.
+    page_wikipedia : HTML de la page des sondages, ou None si elle n'a pas pu être téléchargée."""
     aujourd_hui = maintenant.astimezone(PARIS).date()
     precedent = None
     changes_anciens = []
@@ -576,12 +665,14 @@ def executer(source: Path, dossier_precedent: Path | None, out: Path, maintenant
             changes_anciens = lire_json(dossier_precedent / "changes.json").get("changements", [])
 
     data = lire_source(source)
-    app = construire(data, precedent, aujourd_hui)
+    avertissements: list[str] = []
+    wiki = lire_wikipedia(page_wikipedia, data, precedent, avertissements)
+    app = construire(data, precedent, aujourd_hui, wiki)
 
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
-    avertissements = copier_photos(app, precedent, dossier_precedent, out, telecharge)
+    avertissements += copier_photos(app, precedent, dossier_precedent, out, telecharge)
 
     nouveaux = changements(precedent, app, aujourd_hui.isoformat())
     changes = {"format": FORMAT, "changements": historique(changes_anciens, nouveaux, aujourd_hui)}
@@ -613,7 +704,8 @@ def executer(source: Path, dossier_precedent: Path | None, out: Path, maintenant
     (out / "index.html").write_text(
         "<!doctype html><meta charset=utf-8><title>Avant de voter</title>"
         "<p>Données de l'appli Android « Avant de voter ». "
-        "Source : <a href='https://2027etmoi.fr'>2027 et moi</a>, Licence Ouverte 2.0.</p>",
+        "Source : <a href='https://2027etmoi.fr'>2027 et moi</a>, Licence Ouverte 2.0. "
+        f"Sondages complétés par <a href='{wikipedia.PAGE_URL}'>Wikipédia</a>, {wikipedia.LICENCE}.</p>",
         encoding="utf-8",
     )
     return {"change": True, "avertissements": avertissements, "nouveaux": len(nouveaux), "manifeste": manifeste}
@@ -626,7 +718,12 @@ def main(argv=None) -> int:
     p.add_argument("--out", type=Path, required=True)
     a = p.parse_args(argv)
     try:
-        rapport = executer(a.source, a.previous, a.out, dt.datetime.now(dt.timezone.utc))
+        page = wikipedia.telecharger_page(USER_AGENT)
+    except Exception as e:  # réseau : on publie quand même avec 2027 et moi
+        print(f"::warning::Page Wikipédia des sondages non téléchargée : {e}")
+        page = None
+    try:
+        rapport = executer(a.source, a.previous, a.out, dt.datetime.now(dt.timezone.utc), page_wikipedia=page)
     except (Invalide, KeyError, ValueError, TypeError) as e:
         print(f"::error::Données invalides, rien n'est publié.\n{type(e).__name__}: {e}")
         return 1
