@@ -209,7 +209,7 @@ fun ReglagesScreen(vm: MainViewModel, catalogue: Catalogue, reglages: Reglages, 
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "L'appli vérifie chaque matin après 7 h. 2027 et moi met ses données à jour à la main, sans rythme fixe : " +
+                "L'appli vérifie toutes les 6 heures. 2027 et moi met ses données à jour à la main, sans rythme fixe : " +
                     "il est normal que la date ne change pas tous les jours.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

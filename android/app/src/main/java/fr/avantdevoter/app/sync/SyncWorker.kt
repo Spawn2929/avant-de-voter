@@ -11,13 +11,12 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import fr.avantdevoter.app.AvantDeVoterApp
 import fr.avantdevoter.app.data.Resultat
-import java.time.Duration
-import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
 /**
- * Mise à jour quotidienne des données, appli fermée comprise : chaque jour après 7 h (le robot publie à 6 h).
+ * Vérification des données toutes les 6 heures, appli fermée comprise. Le robot est programmé à 6 h, mais GitHub
+ * le lance souvent vers midi : une vérification par jour à heure fixe faisait attendre le lendemain.
+ * Elle ne lit que manifest.json (moins d'1 Ko) tant que rien n'a changé.
  * Sans réseau à ce moment-là, Android la relance dès que le réseau revient.
  */
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -34,22 +33,19 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
 
     companion object {
         private const val NOM = "mise-a-jour-quotidienne"
-        private val PARIS = ZoneId.of("Europe/Paris")
+        const val INTERVALLE_HEURES = 6L
 
-        /** Délai jusqu'au prochain 7 h 15 à Paris. */
-        fun delaiJusquA7h(maintenant: ZonedDateTime = ZonedDateTime.now(PARIS)): Duration {
-            var cible = maintenant.withZoneSameInstant(PARIS).withHour(7).withMinute(15).withSecond(0).withNano(0)
-            if (!cible.isAfter(maintenant)) cible = cible.plusDays(1)
-            return Duration.between(maintenant, cible)
-        }
+        /** À l'ouverture de l'appli : vérifier si la dernière vérification date de plus de 6 heures (ou n'a jamais eu lieu). */
+        fun verificationDue(derniere: Long?, maintenant: Long): Boolean =
+            derniere == null || maintenant - derniere > INTERVALLE_HEURES * 3600_000L
 
         fun planifier(context: Context) {
-            val request = PeriodicWorkRequestBuilder<SyncWorker>(24, TimeUnit.HOURS)
-                .setInitialDelay(delaiJusquA7h())
+            val request = PeriodicWorkRequestBuilder<SyncWorker>(INTERVALLE_HEURES, TimeUnit.HOURS)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.MINUTES)
                 .build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(NOM, ExistingPeriodicWorkPolicy.KEEP, request)
+            // UPDATE : remplace aussi la vérification quotidienne de 7 h planifiée par les versions précédentes.
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(NOM, ExistingPeriodicWorkPolicy.UPDATE, request)
         }
     }
 }

@@ -30,6 +30,33 @@ fun courbe(sondages: List<Sondage>, id: String): List<PointSondage> =
 
 fun instituts(sondages: List<Sondage>): List<String> = sondages.map { it.institut }.distinct().sorted()
 
+/** Tendance d'un candidat dans la moyenne : écart en points avec la moyenne précédente, ou « nouveau ». */
+sealed interface Tendance {
+    data class Ecart(val points: Double) : Tendance
+    data object Nouveau : Tendance
+}
+
+/** Null s'il n'y a pas encore de moyenne précédente. Écart arrondi au dixième, comme les scores. */
+fun tendance(m: Moyenne, id: String, score: Double): Tendance? {
+    val ref = m.reference ?: return null
+    val avant = ref.scores[id] ?: return Tendance.Nouveau
+    return Tendance.Ecart(Math.round((score - avant) * 10) / 10.0)
+}
+
+/** « ▲ +0,8 pt », « ▼ −0,4 pt », « = », « nouveau ». */
+fun libelleTendance(t: Tendance): String = when (t) {
+    Tendance.Nouveau -> "nouveau"
+    is Tendance.Ecart -> {
+        val v = Math.abs(t.points)
+        val texte = (if (v % 1.0 == 0.0) v.toLong().toString() else v.toString()).replace('.', ',')
+        when {
+            t.points > 0 -> "▲ +$texte pt"
+            t.points < 0 -> "▼ −$texte pt"
+            else -> "="
+        }
+    }
+}
+
 /** « Elabe · BFMTV », ou « Elabe » quand le commanditaire n'est pas connu (sondages repris de Wikipédia). */
 fun titreSondage(s: Sondage): String = if (s.commanditaire.isBlank()) s.institut else "${s.institut} · ${s.commanditaire}"
 

@@ -61,6 +61,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fr.avantdevoter.app.data.Candidat
 import fr.avantdevoter.app.data.Catalogue
+import fr.avantdevoter.app.data.tendance
+import fr.avantdevoter.app.data.libelleTendance
+import fr.avantdevoter.app.data.Tendance
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.Color
 import fr.avantdevoter.app.data.ORIGINE_WIKIPEDIA
 import fr.avantdevoter.app.data.Sondage
 import fr.avantdevoter.app.data.classement
@@ -82,9 +89,30 @@ private fun PhotoOuInitiales(vm: MainViewModel, cat: Catalogue, id: String, tail
     PhotoCandidat(c, vm.repository.photo(c), taille)
 }
 
-/** Ligne « photo, nom, barre, score » ; même couleur pour tous. */
+/** Vert si le candidat progresse, rouge s'il recule, gris sinon ; teintes plus claires en thème sombre. */
 @Composable
-private fun LigneScore(vm: MainViewModel, cat: Catalogue, id: String, score: Double, max: Double, suffixe: String? = null, onClick: (() -> Unit)?) {
+private fun couleurTendance(t: Tendance): Color {
+    val sombre = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val points = (t as? Tendance.Ecart)?.points
+    return when {
+        points != null && points > 0 -> if (sombre) Color(0xFF81C784) else Color(0xFF2E7D32)
+        points != null && points < 0 -> if (sombre) Color(0xFFEF9A9A) else Color(0xFFC62828)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+}
+
+/** Ligne « photo, nom, barre, score » ; même couleur pour tous. [tendance] : écart avec la moyenne précédente. */
+@Composable
+private fun LigneScore(
+    vm: MainViewModel,
+    cat: Catalogue,
+    id: String,
+    score: Double,
+    max: Double,
+    suffixe: String? = null,
+    tendance: Tendance? = null,
+    onClick: (() -> Unit)?,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -101,6 +129,16 @@ private fun LigneScore(vm: MainViewModel, cat: Catalogue, id: String, score: Dou
                 Text(pourcent(score), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 if (suffixe != null) {
                     Text(" $suffixe", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (tendance != null) {
+                    Text(
+                        libelleTendance(tendance),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = couleurTendance(tendance),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.widthIn(min = 72.dp),
+                    )
                 }
             }
             val part = if (max > 0) (score / max).toFloat().coerceIn(0f, 1f) else 0f
@@ -240,12 +278,13 @@ private fun EnTetePremierTour(
         "moyenne",
         ouverteAuDepart = moyenneOuverte,
         sousTitre = if (m == null || m.nbSondages == 0) "Aucun sondage ces 30 derniers jours"
-        else "${m.nbSondages} sondage${if (m.nbSondages > 1) "s" else ""} · trié par score · (n) = nombre de sondages",
+        else "${m.nbSondages} sondage${if (m.nbSondages > 1) "s" else ""} · trié par score · (n) = nombre de sondages" +
+            (m.reference?.let { " · évolution par rapport à la moyenne du ${dateCourte(it.date)}" } ?: ""),
     ) {
         if (m != null && m.scores.isNotEmpty()) {
             val max = m.scores.maxOf { it.score }
             m.scores.forEach { s ->
-                LigneScore(vm, cat, s.id, s.score, max, "(${s.nbSondages})") { onCandidat(s.id) }
+                LigneScore(vm, cat, s.id, s.score, max, "(${s.nbSondages})", tendance(m, s.id, s.score)) { onCandidat(s.id) }
             }
             Text(
                 "Règle de calcul : ${m.regle}",

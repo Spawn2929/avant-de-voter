@@ -2,6 +2,11 @@ package fr.avantdevoter.app
 
 import fr.avantdevoter.app.data.AppData
 import fr.avantdevoter.app.data.Hypothese
+import fr.avantdevoter.app.data.Moyenne
+import fr.avantdevoter.app.data.ReferenceMoyenne
+import fr.avantdevoter.app.data.Tendance
+import fr.avantdevoter.app.data.libelleTendance
+import fr.avantdevoter.app.data.tendance
 import fr.avantdevoter.app.data.ORIGINE_2027
 import fr.avantdevoter.app.data.ORIGINE_WIKIPEDIA
 import fr.avantdevoter.app.data.Sondage
@@ -9,6 +14,7 @@ import fr.avantdevoter.app.data.duels
 import fr.avantdevoter.app.data.json
 import fr.avantdevoter.app.data.titreSondage
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class SecondTourTest {
@@ -46,5 +52,18 @@ class SecondTourTest {
         )
         assertEquals(emptyList<Sondage>(), app.secondTour)
         assertEquals(ORIGINE_2027, app.sondages.first().origine)
+    }
+
+    @Test
+    fun tendance_en_points_par_rapport_a_la_moyenne_precedente() {
+        val sans = Moyenne(30, 12, "r", emptyList())
+        assertNull(tendance(sans, "le-pen", 33.6))
+        val m = sans.copy(reference = ReferenceMoyenne("2026-11-15", mapOf("le-pen" to 32.8, "melenchon" to 17.7, "philippe" to 13.2)))
+        assertEquals(Tendance.Ecart(0.8), tendance(m, "le-pen", 33.6))
+        assertEquals("▲ +0,8 pt", libelleTendance(tendance(m, "le-pen", 33.6)!!))
+        assertEquals("▼ −0,4 pt", libelleTendance(tendance(m, "melenchon", 17.3)!!))
+        assertEquals("=", libelleTendance(tendance(m, "philippe", 13.2)!!))
+        assertEquals("▲ +2 pt", libelleTendance(tendance(m, "philippe", 15.2)!!))
+        assertEquals(Tendance.Nouveau, tendance(m, "villepin", 2.5))
     }
 }

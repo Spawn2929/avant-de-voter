@@ -12,6 +12,7 @@ import fr.avantdevoter.app.data.ThemeChoisi
 import fr.avantdevoter.app.data.VersionPubliee
 import fr.avantdevoter.app.data.estPlusRecente
 import fr.avantdevoter.app.sync.AvantDeVoterWidget
+import fr.avantdevoter.app.sync.SyncWorker
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,9 +57,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val appliMiseAJour = prefs.nouvelleVersionDeLAppli(BuildConfig.VERSION_CODE.toLong())
             repository.importerCopieIntegree(remplacer = appliMiseAJour)
             // À l'ouverture : mise à jour si l'appli vient d'être mise à jour
-            // ou si la dernière vérification date de plus de 24 h.
-            val derniere = prefs.verificationNow()
-            if (appliMiseAJour || derniere == null || System.currentTimeMillis() - derniere > 24 * 3600_000L) {
+            // ou si la dernière vérification date de plus de 6 h.
+            if (appliMiseAJour || SyncWorker.verificationDue(prefs.verificationNow(), System.currentTimeMillis())) {
                 mettreAJour(silencieux = true)
             }
         }

@@ -176,7 +176,14 @@ data class Moyenne(
     @SerialName("nb_sondages") val nbSondages: Int,
     val regle: String,
     val scores: List<ScoreMoyen>,
+    /** Date depuis laquelle la moyenne a ces valeurs. */
+    val depuis: String = "",
+    /** Moyenne précédente (la dernière différente), pour la tendance ; absente tant qu'aucune évolution n'a eu lieu. */
+    val reference: ReferenceMoyenne? = null,
 )
+
+@Serializable
+data class ReferenceMoyenne(val date: String, val scores: Map<String, Double> = emptyMap())
 
 @Serializable
 data class ScoreMoyen(val id: String, val score: Double, @SerialName("nb_sondages") val nbSondages: Int)

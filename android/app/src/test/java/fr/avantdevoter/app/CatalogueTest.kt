@@ -23,7 +23,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
-import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -93,12 +92,11 @@ class CatalogueTest {
     }
 
     @Test
-    fun synchro_apres_7_h_a_paris() {
-        val paris = ZoneId.of("Europe/Paris")
-        assertEquals(Duration.ofMinutes(75), SyncWorker.delaiJusquA7h(ZonedDateTime.of(2026, 10, 24, 6, 0, 0, 0, paris)))
-        assertEquals(Duration.ofHours(23), SyncWorker.delaiJusquA7h(ZonedDateTime.of(2026, 10, 20, 8, 15, 0, 0, paris)))
-        // Passage à l'heure d'hiver dans la nuit du 24 au 25 octobre 2026 : une heure de plus.
-        assertEquals(Duration.ofHours(24), SyncWorker.delaiJusquA7h(ZonedDateTime.of(2026, 10, 24, 8, 15, 0, 0, paris)))
+    fun verification_a_l_ouverture_apres_6_heures() {
+        val heure = 3600_000L
+        assertTrue(SyncWorker.verificationDue(null, 10 * heure))
+        assertFalse(SyncWorker.verificationDue(10 * heure, 15 * heure))
+        assertTrue(SyncWorker.verificationDue(10 * heure, 16 * heure + 1))
     }
 
     @Test

@@ -42,7 +42,9 @@ le geste retour ferme l'écran ouvert, puis revient à Domaines.
 
 - En haut, **1er tour | 2nd tour**, puis le filtre par institut.
 - **1er tour** : en tête, **Moyenne des 30 derniers jours** (touchez pour la déplier) avec la règle de calcul ; le
-  chiffre entre parenthèses dit dans combien de sondages la personne a été testée. Un institut choisi : ses derniers
+  chiffre entre parenthèses dit dans combien de sondages la personne a été testée. À droite, la **tendance** : écart
+  en points avec la moyenne précédente (la dernière différente, date indiquée sous le titre), ▲ en vert si le candidat
+  progresse, ▼ en rouge s'il recule, « = » s'il ne bouge pas, « nouveau » s'il n'y était pas. Un institut choisi : ses derniers
   scores (1re hypothèse) remplacent la moyenne, et la liste ne garde que ses sondages.
 - **2nd tour** : un bloc par duel (« Philippe – Le Pen »…), le plus récemment testé d'abord, avec son dernier résultat ;
   touchez le duel pour voir tous ses résultats, institut par institut.
@@ -83,8 +85,8 @@ du 1er tour et les trois premiers de la moyenne des sondages (triés par score) 
 
 ## Mise à jour des données
 
-Chaque matin à 6 h, un robot GitHub lit les données de 2027 et moi et la page Wikipédia des sondages, les contrôle et les publie.
-L'appli vérifie après 7 h (et à l'ouverture si la dernière vérification a plus de 24 h, ou juste après une mise à jour
+Chaque jour, un robot GitHub lit les données de 2027 et moi et la page Wikipédia des sondages, les contrôle et les publie (programmé à 6 h, GitHub le lance souvent vers midi).
+L'appli vérifie toutes les 6 heures, même fermée (et à l'ouverture si la dernière vérification a plus de 6 h, ou juste après une mise à jour
 de l'appli) ; elle ne télécharge que si quelque chose a changé. 2027 et moi met ses données à jour à la main,
 sans rythme fixe : il est normal que la date ne change pas tous les jours ; les sondages récents arrivent par Wikipédia. Si la page Wikipédia est illisible un matin, le robot garde les sondages Wikipédia de la veille. Tout reste consultable sans réseau.
 
@@ -93,6 +95,7 @@ sans rythme fixe : il est normal que la date ne change pas tous les jours ; les 
 | Version | Contenu |
 |---|---|
 | 0.1 | Robot quotidien, onglets Domaines, Candidats et Plus (Réglages, Crédits), hors-ligne, thème |
+| 0.9 | Tendance de chaque candidat dans la moyenne des 30 derniers jours (▲ vert, ▼ rouge, en points) ; vérification des données toutes les 6 heures |
 | 0.8 | Sondages complétés par Wikipédia (sondages récents que 2027 et moi n'a pas encore repris) ; 2nd tour : duels, derniers résultats et historique |
 | 0.7 | Filtre par institut : derniers scores de l'institut en tête ; questions tirées au hasard à chaque partie ; noms de l'axe sur deux rangs ; photos de Labib, Mathieu, Mikolajczak et Mlekuz fournies avec l'appli |
 | 0.6 | « De quel bord es-tu ? » (10 questions, proximité, axe gauche-droite) ; photos ajoutées sur le téléphone |
