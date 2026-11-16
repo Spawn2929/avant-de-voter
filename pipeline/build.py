@@ -66,7 +66,9 @@ WIKIPEDIA_PART_MIN = 0.5
 REGLE_MOYENNE = (
     "Moyenne des sondages du 1er tour (2027 et moi et Wikipédia) dont la fin de terrain date de moins de 30 jours. "
     "Quand un sondage teste plusieurs hypothèses, on retient la moyenne des hypothèses où le candidat figure. "
-    "Puis moyenne simple entre sondages, arrondie au dixième."
+    "Puis moyenne simple entre sondages, arrondie au dixième. "
+    "Tendance : écart en points avec la moyenne précédente, c'est-à-dire la dernière moyenne différente publiée "
+    "(nouveau sondage ou sondage sorti de la fenêtre des 30 jours)."
 )
 
 
@@ -303,7 +305,35 @@ def moyenne(sondages: list, aujourd_hui: dt.date) -> dict:
     }
 
 
-def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date, wiki: tuple | None = None) -> dict:
+def avec_tendance(m: dict, avant: dict | None, aujourd_hui: dt.date, date_veille: str | None,
+                  sondages: list | None = None) -> dict:
+    """Ajoute à la moyenne la date depuis laquelle elle vaut ce qu'elle vaut (« depuis ») et la moyenne précédente
+    (« reference » : date et scores), pour afficher la tendance de chaque candidat.
+    Tant que les scores ne bougent pas, on garde la même référence : la tendance montre la dernière évolution."""
+    scores = {s["id"]: s["score"] for s in m["scores"]}
+    if not avant:
+        return {**m, "depuis": aujourd_hui.isoformat()}
+    scores_avant = {s["id"]: s["score"] for s in avant.get("scores") or []}
+    depuis_avant = avant.get("depuis") or date_veille or aujourd_hui.isoformat()
+    if scores == scores_avant and "depuis" not in avant and sondages:
+        # Première publication avec la tendance, sans évolution ce jour-là : on reconstitue la dernière moyenne
+        # différente à partir des dates de terrain, pour ne pas attendre la prochaine évolution.
+        for k in range(1, 61):
+            jour = aujourd_hui - dt.timedelta(days=k)
+            anciens = {s["id"]: s["score"] for s in moyenne(sondages, jour)["scores"]}
+            if anciens and anciens != scores:
+                return {**m, "depuis": (jour + dt.timedelta(days=1)).isoformat(),
+                        "reference": {"date": jour.isoformat(), "scores": anciens}}
+    if scores == scores_avant:
+        sortie = {**m, "depuis": depuis_avant}
+        if avant.get("reference"):
+            sortie["reference"] = avant["reference"]
+        return sortie
+    return {**m, "depuis": aujourd_hui.isoformat(), "reference": {"date": depuis_avant, "scores": scores_avant}}
+
+
+def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date, wiki: tuple | None = None,
+               date_veille: str | None = None) -> dict:
     """Assemble app-data.json (sans les photos, ajoutées ensuite).
     wiki = (1er tour, 2nd tour, nouveaux noms) lus sur Wikipédia ; None si la page n'a pas pu être lue :
     on garde alors les sondages Wikipédia de la veille."""
@@ -402,7 +432,9 @@ def construire(data: dict, precedent: dict | None, aujourd_hui: dt.date, wiki: t
             else []
         ),
         "noms_hors_liste": dict(sorted(noms_hors_liste.items())),
-        "moyenne": moyenne(sondages, aujourd_hui),
+        "moyenne": avec_tendance(
+            moyenne(sondages, aujourd_hui), (precedent or {}).get("moyenne"), aujourd_hui, date_veille, sondages
+        ),
         "calendrier": [
             {
                 "date": e["date"],
@@ -667,7 +699,11 @@ def executer(source: Path, dossier_precedent: Path | None, out: Path, maintenant
     data = lire_source(source)
     avertissements: list[str] = []
     wiki = lire_wikipedia(page_wikipedia, data, precedent, avertissements)
-    app = construire(data, precedent, aujourd_hui, wiki)
+    # Date de la publication précédente : sert de date à la moyenne de la veille si elle n'en porte pas encore.
+    date_veille = None
+    if precedent and (dossier_precedent / "manifest.json").exists():
+        date_veille = (lire_json(dossier_precedent / "manifest.json").get("publie_le") or "")[:10] or None
+    app = construire(data, precedent, aujourd_hui, wiki, date_veille)
 
     if out.exists():
         shutil.rmtree(out)

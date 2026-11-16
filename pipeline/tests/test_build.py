@@ -324,3 +324,45 @@ def test_vraies_donnees(tmp_path):
     assert len(app["themes"]) == 13
     assert sum(len(c["mesures"]) for c in app["candidats"]) > 500
     assert (out / "app-data.json").stat().st_size < 1_000_000
+
+
+def test_tendance_garde_la_derniere_evolution():
+    jour = dt.date(2026, 11, 16)
+    m1 = {"scores": [{"id": "x", "score": 30.0, "nb_sondages": 2}, {"id": "y", "score": 10.0, "nb_sondages": 2}]}
+    # Première publication avec tendance : la moyenne de la veille prend la date de la publication précédente.
+    a = build.avec_tendance(m1, None, jour, None)
+    assert a == {**m1, "depuis": "2026-11-16"}
+    m2 = {"scores": [{"id": "x", "score": 31.2, "nb_sondages": 3}, {"id": "z", "score": 2.0, "nb_sondages": 1}]}
+    b = build.avec_tendance(m2, m1, dt.date(2026, 11, 17), "2026-11-15")
+    assert b["depuis"] == "2026-11-17"
+    assert b["reference"] == {"date": "2026-11-15", "scores": {"x": 30.0, "y": 10.0}}
+    # Le lendemain rien ne bouge : même date et même référence (le fichier ne change pas).
+    c = build.avec_tendance({"scores": m2["scores"]}, b, dt.date(2026, 11, 18), "2026-11-17")
+    assert c["depuis"] == "2026-11-17" and c["reference"] == b["reference"]
+    # Nouvelle évolution : la référence devient la moyenne du 17.
+    d = build.avec_tendance({"scores": [{"id": "x", "score": 30.5, "nb_sondages": 3}]}, c, dt.date(2026, 11, 19), "2026-11-18")
+    assert d["reference"] == {"date": "2026-11-17", "scores": {"x": 31.2, "z": 2.0}}
+
+
+def test_tendance_publiee(tmp_path):
+    src = source_min(tmp_path)
+    out1, _, app1 = lancer(tmp_path, src, nom="j1")
+    assert "reference" not in app1["moyenne"] and app1["moyenne"]["depuis"] == "2026-10-24"
+    # Vingt jours plus tard, l'Elabe du 2 octobre est sorti de la fenêtre des 30 jours : la moyenne change.
+    _, _, app2 = lancer(tmp_path, src, precedent=out1, nom="j2", maintenant=MAINTENANT + dt.timedelta(days=20))
+    assert app2["moyenne"]["reference"]["date"] == "2026-10-24"
+    assert app2["moyenne"]["reference"]["scores"] == {s["id"]: s["score"] for s in app1["moyenne"]["scores"]}
+    assert "Tendance" in app2["moyenne"]["regle"]
+
+
+def test_tendance_reconstituee_a_la_premiere_publication():
+    s = [build.sondage_app(x) for x in [
+        {"institut": "A", "terrain_fin": "2026-11-13", "source": {"url": "u1"}, "hypotheses": [{"scores": {"x": 30}}]},
+        {"institut": "B", "terrain_fin": "2026-11-10", "source": {"url": "u2"}, "hypotheses": [{"scores": {"x": 20}}]},
+    ]]
+    jour = dt.date(2026, 11, 16)
+    m = build.moyenne(s, jour)
+    # La veille, la moyenne publiée était déjà la même, mais sans date : on remonte aux dates de terrain.
+    t = build.avec_tendance(m, {"scores": m["scores"]}, jour, "2026-11-15", s)
+    assert t["reference"] == {"date": "2026-11-12", "scores": {"x": 20.0}}
+    assert t["depuis"] == "2026-11-13"
