@@ -1,15 +1,15 @@
 {
   "format": 1,
-  "source_mise_a_jour": "2026-11-18",
-  "publie_le": "2026-11-23T16:46:35+01:00",
+  "source_mise_a_jour": "2026-11-24",
+  "publie_le": "2026-11-24T16:37:52+01:00",
   "fichiers": {
     "app-data.json": {
-      "sha256": "f20cf75f237591edb8a5b379aab4a4a5d93f9825446d8930120541c9a77ad17a",
-      "taille": 960958
+      "sha256": "3530cc8e90e62fcb3a23616a1114cf7bb63ad5b08770d1c1a7f12f46499e910a",
+      "taille": 983582
     },
     "changes.json": {
-      "sha256": "9ba3ffaa5c7f520a7a47fed38371a7170289c37e6992d7e7de8f178de90f3961",
-      "taille": 21103
+      "sha256": "16faf8fa10c4b05e01cbcf7e6220eb5d3d0466ba3e37b2671b529c0330d2a004",
+      "taille": 33083
     }
   },
   "photos": 51
